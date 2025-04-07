@@ -16,14 +16,14 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "Services")
+@Table(name = "Bundles")
 @Getter
 @Setter
-public class Service extends BaseEntity {
+public class Bundle extends BaseEntity {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "ServiceID")
+    @Column(name = "BundleID")
     private Long id;
     
     @NotBlank(message = "Name is required")

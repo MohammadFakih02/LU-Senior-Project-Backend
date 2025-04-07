@@ -4,11 +4,11 @@ import org.springframework.stereotype.Component;
 
 import com.example.internetprovidermanagement.dtos.LocationDTO;
 import com.example.internetprovidermanagement.dtos.PaymentDTO;
-import com.example.internetprovidermanagement.dtos.ServiceDTO;
+import com.example.internetprovidermanagement.dtos.BundleDTO;
 import com.example.internetprovidermanagement.dtos.UserDTO;
 import com.example.internetprovidermanagement.models.Location;
 import com.example.internetprovidermanagement.models.Payment;
-import com.example.internetprovidermanagement.models.Service;
+import com.example.internetprovidermanagement.models.Bundle;
 import com.example.internetprovidermanagement.models.User;
 
 @Component
@@ -86,40 +86,40 @@ public class ModelMapper {
         return payment;
     }
 
-    // Service conversions
-    public ServiceDTO toServiceDTO(Service service) {
-        if (service == null) {
+    // Bundle conversions
+    public BundleDTO toBundleDTO(Bundle Bundle) {
+        if (Bundle == null) {
             return null;
         }
         
-        ServiceDTO dto = new ServiceDTO();
-        dto.setId(service.getId());
-        dto.setName(service.getName());
-        dto.setDescription(service.getDescription());
-        dto.setType(service.getType());
-        dto.setPrice(service.getPrice());
-        dto.setDataCap(service.getDataCap());
-        dto.setSpeed(service.getSpeed());
-        dto.setCreatedAt(service.getCreatedAt());
-        dto.setUpdatedAt(service.getUpdatedAt());
+        BundleDTO dto = new BundleDTO();
+        dto.setId(Bundle.getId());
+        dto.setName(Bundle.getName());
+        dto.setDescription(Bundle.getDescription());
+        dto.setType(Bundle.getType());
+        dto.setPrice(Bundle.getPrice());
+        dto.setDataCap(Bundle.getDataCap());
+        dto.setSpeed(Bundle.getSpeed());
+        dto.setCreatedAt(Bundle.getCreatedAt());
+        dto.setUpdatedAt(Bundle.getUpdatedAt());
         return dto;
     }
 
-    public Service toService(ServiceDTO serviceDTO) {
-        if (serviceDTO == null) {
+    public Bundle toBundle(BundleDTO BundleDTO) {
+        if (BundleDTO == null) {
             return null;
         }
         
-        Service service = new Service();
-        service.setId(serviceDTO.getId());
-        service.setName(serviceDTO.getName());
-        service.setDescription(serviceDTO.getDescription());
-        service.setType(serviceDTO.getType());
-        service.setPrice(serviceDTO.getPrice());
-        service.setDataCap(serviceDTO.getDataCap());
-        service.setSpeed(serviceDTO.getSpeed());
+        Bundle Bundle = new Bundle();
+        Bundle.setId(BundleDTO.getId());
+        Bundle.setName(BundleDTO.getName());
+        Bundle.setDescription(BundleDTO.getDescription());
+        Bundle.setType(BundleDTO.getType());
+        Bundle.setPrice(BundleDTO.getPrice());
+        Bundle.setDataCap(BundleDTO.getDataCap());
+        Bundle.setSpeed(BundleDTO.getSpeed());
         // createdAt and updatedAt are automatically managed by BaseEntity
-        return service;
+        return Bundle;
     }
 
     // User conversions
@@ -139,14 +139,14 @@ public class ModelMapper {
         dto.setBill(user.getBill());
         dto.setSubscriptionDate(user.getSubscriptionDate());
         dto.setStatus(user.getStatus());
-        dto.setServiceId(user.getService() != null ? user.getService().getId() : null);
+        dto.setBundleId(user.getBundle() != null ? user.getBundle().getId() : null);
         dto.setLocationId(user.getLocation() != null ? user.getLocation().getId() : null);
         dto.setCreatedAt(user.getCreatedAt());
         dto.setUpdatedAt(user.getUpdatedAt());
         return dto;
     }
 
-    public User toUser(UserDTO userDTO, Service service, Location location) {
+    public User toUser(UserDTO userDTO, Bundle Bundle, Location location) {
         if (userDTO == null) {
             return null;
         }
@@ -162,7 +162,7 @@ public class ModelMapper {
         user.setBill(userDTO.getBill());
         user.setSubscriptionDate(userDTO.getSubscriptionDate());
         user.setStatus(userDTO.getStatus());
-        user.setService(service);
+        user.setBundle(Bundle);
         user.setLocation(location);
         // createdAt and updatedAt are automatically managed by BaseEntity
         return user;

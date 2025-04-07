@@ -11,7 +11,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ServiceDTO {
+public class BundleDTO {
     private Long id;
 
     @NotBlank(message = "Name is required")
