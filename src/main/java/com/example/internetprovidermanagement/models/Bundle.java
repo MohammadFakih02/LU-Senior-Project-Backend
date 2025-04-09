@@ -2,8 +2,16 @@ package com.example.internetprovidermanagement.models;
 
 import java.math.BigDecimal;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -45,9 +53,13 @@ public class Bundle extends BaseEntity {
     @Column(name = "Price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
     
-    @Column(name = "DataCap", nullable = false, precision = 10, scale = 2)
-    private BigDecimal dataCap = BigDecimal.ZERO;
+    @NotNull(message = "DataCap is required")
+    @Min(value = 0, message = "DataCap must be a non-negative integer")
+    @Column(name = "DataCap", nullable = false)
+    private Integer dataCap;
     
+    @NotNull(message = "Speed is required")
+    @Min(value = 1, message = "Speed must be a positive integer")
     @Column(name = "Speed", nullable = false)
-    private Integer speed = 0;
+    private Integer speed;
 }

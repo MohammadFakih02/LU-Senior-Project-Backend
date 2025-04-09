@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import com.example.internetprovidermanagement.models.Bundle;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -32,10 +33,12 @@ public class BundleDTO {
     private BigDecimal price;
 
     @NotNull(message = "DataCap is required")
-    private BigDecimal dataCap = BigDecimal.ZERO;
+    @Min(value = 0, message = "DataCap must be a non-negative integer")
+    private Integer dataCap;
 
     @NotNull(message = "Speed is required")
-    private Integer speed = 0;
+    @Min(value = 1, message = "Speed must be a positive integer")
+    private Integer speed;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
