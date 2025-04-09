@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -50,7 +51,8 @@ public class Bundle extends BaseEntity {
     
     @NotNull(message = "Price is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
-    @Column(name = "Price", nullable = false, precision = 10, scale = 2)
+    @Digits(integer = 10, fraction = 2, message = "Price must have up to 2 decimal places")
+    @Column(name = "Price", nullable = false, precision = 12, scale = 2)
     private BigDecimal price;
     
     @NotNull(message = "DataCap is required")
