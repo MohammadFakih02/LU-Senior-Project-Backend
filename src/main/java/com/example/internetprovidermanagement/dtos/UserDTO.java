@@ -1,4 +1,5 @@
 package com.example.internetprovidermanagement.dtos;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -49,7 +50,7 @@ public class UserDTO {
     private UserStatus status = UserStatus.active;
 
     @NotNull(message = "Bundle ID is required")
-    private Long BundleId;
+    private Long bundleId;
 
     @NotNull(message = "Location ID is required")
     private Long locationId;

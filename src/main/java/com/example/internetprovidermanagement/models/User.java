@@ -75,13 +75,13 @@ public class User extends BaseEntity {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "BundleID", nullable = false)
-    private Bundle Bundle;
+    private Bundle bundle;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "LocationID", nullable = false)
     private Location location;
 
     public enum UserStatus {
-        active, inactive
+        active, inactive, suspended
     }
 }

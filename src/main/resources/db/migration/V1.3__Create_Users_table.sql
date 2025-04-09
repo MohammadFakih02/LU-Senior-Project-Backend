@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS `Users` (
   `Consumption` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   `Bill` DECIMAL(10,2) NOT NULL,
   `SubscriptionDate` DATE NOT NULL,
-  `Status` ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+  `Status` ENUM('active', 'inactive', 'suspended') NOT NULL DEFAULT 'active',
   `BundleID` INT NOT NULL,
   `LocationID` INT NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
