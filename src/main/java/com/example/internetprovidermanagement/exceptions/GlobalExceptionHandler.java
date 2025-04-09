@@ -1,14 +1,17 @@
 package com.example.internetprovidermanagement.exceptions;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -58,10 +61,23 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex, HttpServletRequest request) {
         return buildErrorResponse(ex, HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
-
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
-        String error = "Invalid bundle type. Allowed values are: Fiber, DSL, VDSL";
-        return buildErrorResponse(new BadRequestException(error), HttpStatus.BAD_REQUEST, request);
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
+    HttpMessageNotReadableException ex, HttpServletRequest request) {
+    
+    String errorMessage = "Invalid request body";
+    if (ex.getCause() instanceof InvalidFormatException ife) {
+        if (ife.getTargetType() != null && ife.getTargetType().isEnum()) {
+            errorMessage = String.format("Invalid enum value: '%s'. Allowed values are: %s",
+                ife.getValue(),
+                Arrays.toString(ife.getTargetType().getEnumConstants()));
+        }
     }
+    
+    return buildErrorResponse(
+        new BadRequestException(errorMessage),
+        HttpStatus.BAD_REQUEST,
+        request
+    );
+}
 }
