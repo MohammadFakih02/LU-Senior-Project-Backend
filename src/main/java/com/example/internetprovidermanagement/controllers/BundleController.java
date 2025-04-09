@@ -1,5 +1,6 @@
 package com.example.internetprovidermanagement.controllers;
 
+import com.example.internetprovidermanagement.models.Bundle;
 import org.springframework.web.bind.annotation.*;
 import com.example.internetprovidermanagement.dtos.BundleDTO;
 import com.example.internetprovidermanagement.services.BundleService;
@@ -27,7 +28,7 @@ public class BundleController {
 
     @GetMapping("/type/{type}")
     public List<BundleDTO> getBundlesByType(@PathVariable String type) {
-        return bundleService.getBundlesByType(type);
+        return bundleService.getBundlesByType(Bundle.BundleType.DSL);
     }
 
     @GetMapping("/{id}")

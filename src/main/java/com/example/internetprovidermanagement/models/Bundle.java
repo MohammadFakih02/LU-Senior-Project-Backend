@@ -2,12 +2,7 @@ package com.example.internetprovidermanagement.models;
 
 import java.math.BigDecimal;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -35,11 +30,15 @@ public class Bundle extends BaseEntity {
     @Size(max = 500, message = "Description must be less than 500 characters")
     @Column(name = "Description", nullable = false)
     private String description;
-    
-    @NotBlank(message = "Type is required")
-    @Size(max = 45, message = "Type must be less than 45 characters")
+
+    public enum BundleType {
+        Fiber, DSL, VDSL
+    }
+
+    @NotNull(message = "Type is required")
+    @Enumerated(EnumType.STRING)
     @Column(name = "Type", nullable = false)
-    private String type;
+    private BundleType type;
     
     @NotNull(message = "Price is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")

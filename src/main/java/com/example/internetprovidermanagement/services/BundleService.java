@@ -39,7 +39,7 @@ public class BundleService {
     }
 
     // Get Bundles by Type (using custom repository method)
-    public List<BundleDTO> getBundlesByType(String type) {
+    public List<BundleDTO> getBundlesByType(Bundle.BundleType type) {
         return bundleRepository.findByType(type).stream()
                 .map(modelMapper::toBundleDTO)
                 .collect(Collectors.toList());

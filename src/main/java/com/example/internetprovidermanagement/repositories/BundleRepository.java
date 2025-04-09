@@ -5,5 +5,5 @@ import java.util.List;
 
 public interface BundleRepository extends JpaRepository<Bundle, Long> {
     // Optional: Find Bundles by type
-    List<Bundle> findByType(String type);
+    List<Bundle> findByType(Bundle.BundleType type);
 }

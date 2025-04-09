@@ -2,6 +2,7 @@ package com.example.internetprovidermanagement.dtos;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.example.internetprovidermanagement.models.Bundle;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,7 +25,7 @@ public class BundleDTO {
 
     @NotBlank(message = "Type is required")
     @Size(max = 45, message = "Type must be less than 45 characters")
-    private String type;
+    private Bundle.BundleType type;
 
     @NotNull(message = "Price is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
