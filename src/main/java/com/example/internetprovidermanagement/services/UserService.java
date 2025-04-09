@@ -6,9 +6,14 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.internetprovidermanagement.dtos.BundleDTO;
+import com.example.internetprovidermanagement.dtos.LocationDTO;
 import com.example.internetprovidermanagement.dtos.UserDTO;
 import com.example.internetprovidermanagement.exceptions.ConflictException;
 import com.example.internetprovidermanagement.exceptions.ResourceNotFoundException;
+import com.example.internetprovidermanagement.mappers.BundleMapper;
+import com.example.internetprovidermanagement.mappers.LocationMapper;
+import com.example.internetprovidermanagement.mappers.UserMapper;
 import com.example.internetprovidermanagement.models.Bundle;
 import com.example.internetprovidermanagement.models.Location;
 import com.example.internetprovidermanagement.models.User;
@@ -21,16 +26,22 @@ public class UserService {
     private final UserRepository userRepository;
     private final BundleService bundleService;
     private final LocationService locationService;
-    private final ModelMapper modelMapper;
+    private final UserMapper userMapper;
+    private final BundleMapper bundleMapper;
+    private final LocationMapper locationMapper;
 
     public UserService(UserRepository userRepository, 
                      BundleService bundleService, 
                      LocationService locationService,
-                     ModelMapper modelMapper) {
+                     UserMapper userMapper,
+                     BundleMapper bundleMapper,
+                     LocationMapper locationMapper) {
         this.userRepository = userRepository;
         this.bundleService = bundleService;
         this.locationService = locationService;
-        this.modelMapper = modelMapper;
+        this.userMapper = userMapper;
+        this.bundleMapper = bundleMapper;
+        this.locationMapper = locationMapper;
     }
 
     public UserDTO createUser(UserDTO userDTO) {
@@ -44,28 +55,28 @@ public class UserService {
         Bundle bundle = getBundleById(userDTO.getBundleId());
         Location location = getLocationById(userDTO.getLocationId());
         
-        User user = modelMapper.toUser(userDTO, bundle, location);
+        User user = userMapper.toUserWithRelations(userDTO, bundle, location);
         User savedUser = userRepository.save(user);
         
-        return modelMapper.toUserDTO(savedUser);
+        return userMapper.toUserDTO(savedUser);
     }
 
     public List<UserDTO> getAllUsers() {
         return userRepository.findAll().stream()
-                .map(modelMapper::toUserDTO)
+                .map(userMapper::toUserDTO)
                 .collect(Collectors.toList());
     }
 
     public UserDTO getUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
-        return modelMapper.toUserDTO(user);
+        return userMapper.toUserDTO(user);
     }
 
     public UserDTO getUserByEmail(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
-        return modelMapper.toUserDTO(user);
+        return userMapper.toUserDTO(user);
     }
 
     public UserDTO updateUser(Long id, UserDTO userDTO) {
@@ -105,7 +116,7 @@ public class UserService {
         existingUser.setLocation(location);
         
         User updatedUser = userRepository.save(existingUser);
-        return modelMapper.toUserDTO(updatedUser);
+        return userMapper.toUserDTO(updatedUser);
     }
 
     public void deleteUser(Long id) {
@@ -116,10 +127,12 @@ public class UserService {
     }
 
     private Bundle getBundleById(Long bundleId) {
-        return modelMapper.toBundle(bundleService.getBundleById(bundleId));
+        BundleDTO bundleDTO = bundleService.getBundleById(bundleId);
+        return bundleMapper.toBundle(bundleDTO);
     }
 
     private Location getLocationById(Long locationId) {
-        return modelMapper.toLocation(locationService.getLocationById(locationId));
+        LocationDTO locationDTO = locationService.getLocationById(locationId);
+        return locationMapper.toLocation(locationDTO);
     }
 }
