@@ -19,7 +19,7 @@ public class ModelMapper {
         if (location == null) {
             return null;
         }
-        
+
         LocationDTO dto = new LocationDTO();
         dto.setId(location.getId());
         dto.setAddress(location.getAddress());
@@ -37,7 +37,7 @@ public class ModelMapper {
         if (locationDTO == null) {
             return null;
         }
-        
+
         Location location = new Location();
         location.setId(locationDTO.getId());
         location.setAddress(locationDTO.getAddress());
@@ -55,7 +55,7 @@ public class ModelMapper {
         if (payment == null) {
             return null;
         }
-        
+
         PaymentDTO dto = new PaymentDTO();
         dto.setId(payment.getId());
         dto.setAmount(payment.getAmount());
@@ -73,7 +73,7 @@ public class ModelMapper {
         if (paymentDTO == null) {
             return null;
         }
-        
+
         Payment payment = new Payment();
         payment.setId(paymentDTO.getId());
         payment.setAmount(paymentDTO.getAmount());
@@ -91,7 +91,7 @@ public class ModelMapper {
         if (Bundle == null) {
             return null;
         }
-        
+
         BundleDTO dto = new BundleDTO();
         dto.setId(Bundle.getId());
         dto.setName(Bundle.getName());
@@ -109,7 +109,7 @@ public class ModelMapper {
         if (BundleDTO == null) {
             return null;
         }
-        
+
         Bundle Bundle = new Bundle();
         Bundle.setId(BundleDTO.getId());
         Bundle.setName(BundleDTO.getName());
@@ -127,7 +127,7 @@ public class ModelMapper {
         if (user == null) {
             return null;
         }
-        
+
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
         dto.setFirstName(user.getFirstName());
@@ -150,7 +150,7 @@ public class ModelMapper {
         if (userDTO == null) {
             return null;
         }
-        
+
         User user = new User();
         user.setId(userDTO.getId());
         user.setFirstName(userDTO.getFirstName());
@@ -167,4 +167,16 @@ public class ModelMapper {
         // createdAt and updatedAt are automatically managed by BaseEntity
         return user;
     }
+    public Payment toPayment(PaymentDTO paymentDTO) {
+        Payment payment = new Payment();
+        // Map fields
+        payment.setAmount(paymentDTO.getAmount());
+        payment.setPaymentDate(paymentDTO.getPaymentDate());
+        payment.setStatus(paymentDTO.getStatus());
+        payment.setMethod(paymentDTO.getMethod());
+        payment.setDueDate(paymentDTO.getDueDate());
+        return payment;
+    }
+
+
 }

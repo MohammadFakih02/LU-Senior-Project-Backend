@@ -83,6 +83,7 @@ public class GlobalExceptionHandler {
             HttpStatus.BAD_REQUEST,
             request
         );
+
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -113,5 +114,9 @@ public class GlobalExceptionHandler {
             HttpStatus.BAD_REQUEST,
             request
         );
+    }
+    @ExceptionHandler(PaymentProcessingException.class)
+    public ResponseEntity<ErrorResponse> handlePaymentProcessing(PaymentProcessingException ex, HttpServletRequest request) {
+        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, request);
     }
 }
