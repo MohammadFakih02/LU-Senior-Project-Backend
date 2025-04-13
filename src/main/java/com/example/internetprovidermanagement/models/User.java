@@ -74,14 +74,14 @@ public class User extends BaseEntity {
     private UserStatus status = UserStatus.active;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ServiceID", nullable = false)
-    private Service service;
+    @JoinColumn(name = "BundleID", nullable = false)
+    private Bundle bundle;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "LocationID", nullable = false)
     private Location location;
 
     public enum UserStatus {
-        active, inactive
+        active, inactive, suspended
     }
 }

@@ -2,7 +2,11 @@ package com.example.internetprovidermanagement.dtos;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.example.internetprovidermanagement.models.Bundle;
+
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -11,7 +15,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ServiceDTO {
+public class BundleDTO {
     private Long id;
 
     @NotBlank(message = "Name is required")
@@ -22,19 +26,21 @@ public class ServiceDTO {
     @Size(max = 500, message = "Description must be less than 500 characters")
     private String description;
 
-    @NotBlank(message = "Type is required")
-    @Size(max = 45, message = "Type must be less than 45 characters")
-    private String type;
+    @NotNull(message = "Type is required")
+    private Bundle.BundleType type;
 
     @NotNull(message = "Price is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
+    @Digits(integer = 10, fraction = 2, message = "Price must have up to 2 decimal places")
     private BigDecimal price;
 
     @NotNull(message = "DataCap is required")
-    private BigDecimal dataCap = BigDecimal.ZERO;
+    @Min(value = 0, message = "DataCap must be a non-negative integer")
+    private Integer dataCap;
 
     @NotNull(message = "Speed is required")
-    private Integer speed = 0;
+    @Min(value = 1, message = "Speed must be a positive integer")
+    private Integer speed;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
