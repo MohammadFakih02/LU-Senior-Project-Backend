@@ -49,11 +49,8 @@ public class UserDTO {
 
     private UserStatus status = UserStatus.active;
 
-    @NotNull(message = "Bundle ID is required")
-    private Long bundleId;
-
-    @NotNull(message = "Location ID is required")
-    private Long locationId;
+    private String bundleName;
+    private String locationAddress;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.example.internetprovidermanagement.dtos.UserDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,31 +13,33 @@ import com.example.internetprovidermanagement.mappers.PaymentMapper;
 import com.example.internetprovidermanagement.models.Payment;
 import com.example.internetprovidermanagement.models.User;
 import com.example.internetprovidermanagement.repositories.PaymentRepository;
+import com.example.internetprovidermanagement.repositories.UserRepository;
 
 @Service
 @Transactional
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
-    private final UserService userService;
+    private final UserRepository userRepository;
     private final PaymentMapper paymentMapper;
 
     public PaymentService(PaymentRepository paymentRepository,
-                         UserService userService,
+                         UserRepository userRepository,
                          PaymentMapper paymentMapper) {
         this.paymentRepository = paymentRepository;
-        this.userService = userService;
+        this.userRepository = userRepository;
         this.paymentMapper = paymentMapper;
     }
 
     public PaymentDTO createPayment(PaymentDTO paymentDTO) {
-        UserDTO userDTO = userService.getUserById(paymentDTO.getUserId());
-        User user = new User();
-        user.setId(userDTO.getId());
+        // Get the user entity from repository
+        User user = userRepository.findById(paymentDTO.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + paymentDTO.getUserId()));
 
-        Payment payment = paymentMapper.toPaymentWithUser(paymentDTO, user);
+        Payment payment = paymentMapper.toPayment(paymentDTO);
+        payment.setUser(user); // Set the complete user entity
 
-        if(payment.getPaymentDate() == null) {
+        if (payment.getPaymentDate() == null) {
             payment.setPaymentDate(LocalDate.now());
         }
 
@@ -59,6 +60,10 @@ public class PaymentService {
     }
 
     public List<PaymentDTO> getPaymentsByUserId(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("User not found with ID: " + userId);
+        }
+        
         return paymentRepository.findByUserId(userId).stream()
                 .map(paymentMapper::toPaymentDTO)
                 .collect(Collectors.toList());
@@ -68,11 +73,11 @@ public class PaymentService {
         Payment existingPayment = paymentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found with ID: " + id));
 
-        if(!existingPayment.getUser().getId().equals(paymentDTO.getUserId())) {
-            UserDTO newUserDTO = userService.getUserById(paymentDTO.getUserId());
-            User newUser = new User();
-            newUser.setId(newUserDTO.getId());
-            existingPayment.setUser(newUser);
+        // Only update user if it's different
+        if (!existingPayment.getUser().getId().equals(paymentDTO.getUserId())) {
+            User user = userRepository.findById(paymentDTO.getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + paymentDTO.getUserId()));
+            existingPayment.setUser(user);
         }
 
         existingPayment.setAmount(paymentDTO.getAmount());
@@ -86,7 +91,7 @@ public class PaymentService {
     }
 
     public void deletePayment(Long id) {
-        if(!paymentRepository.existsById(id)) {
+        if (!paymentRepository.existsById(id)) {
             throw new ResourceNotFoundException("Payment not found with ID: " + id);
         }
         paymentRepository.deleteById(id);
