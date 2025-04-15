@@ -12,60 +12,52 @@ import com.example.internetprovidermanagement.mappers.BundleMapper;
 import com.example.internetprovidermanagement.models.Bundle;
 import com.example.internetprovidermanagement.repositories.BundleRepository;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class BundleService {
-
     private final BundleRepository bundleRepository;
     private final BundleMapper bundleMapper;
 
-    public BundleService(BundleRepository bundleRepository, BundleMapper bundleMapper) {
-        this.bundleRepository = bundleRepository;
-        this.bundleMapper = bundleMapper;
-    }
-
     public BundleDTO createBundle(BundleDTO bundleDTO) {
-        Bundle bundle = bundleMapper.toBundle(bundleDTO);
+        Bundle bundle = bundleMapper.toEntity(bundleDTO);
         Bundle savedBundle = bundleRepository.save(bundle);
-        return bundleMapper.toBundleDTO(savedBundle);
+        return bundleMapper.toDto(savedBundle);
     }
 
     public List<BundleDTO> getAllBundles() {
         return bundleRepository.findAll().stream()
-                .map(bundleMapper::toBundleDTO)
+                .map(bundleMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     public List<BundleDTO> getBundlesByType(Bundle.BundleType type) {
         return bundleRepository.findByType(type).stream()
-                .map(bundleMapper::toBundleDTO)
+                .map(bundleMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     public BundleDTO getBundleById(Long id) {
         Bundle bundle = bundleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with ID: " + id));
-        return bundleMapper.toBundleDTO(bundle);
+        return bundleMapper.toDto(bundle);
     }
 
     public BundleDTO updateBundle(Long id, BundleDTO bundleDTO) {
         Bundle existingBundle = bundleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with ID: " + id));
-
-        existingBundle.setName(bundleDTO.getName());
-        existingBundle.setDescription(bundleDTO.getDescription());
-        existingBundle.setType(bundleDTO.getType());
-        existingBundle.setPrice(bundleDTO.getPrice());
-        existingBundle.setDataCap(bundleDTO.getDataCap());
-        existingBundle.setSpeed(bundleDTO.getSpeed());
-
+        
+        bundleMapper.updateBundleFromDto(bundleDTO, existingBundle);
         Bundle updatedBundle = bundleRepository.save(existingBundle);
-        return bundleMapper.toBundleDTO(updatedBundle);
+        return bundleMapper.toDto(updatedBundle);
     }
 
     public void deleteBundle(Long id) {
-        Bundle bundle = bundleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with ID: " + id));
-        bundleRepository.delete(bundle);
+        if (!bundleRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Bundle not found with ID: " + id);
+        }
+        bundleRepository.deleteById(id);
     }
 }

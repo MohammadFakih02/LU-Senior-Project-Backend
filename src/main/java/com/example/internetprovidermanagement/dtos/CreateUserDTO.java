@@ -1,18 +1,22 @@
 package com.example.internetprovidermanagement.dtos;
 
+import java.util.List;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
-@Getter
-@Setter
+@Getter @Setter
 public class CreateUserDTO {
+    @Valid
     @NotNull(message = "User details are required")
     private UserDTO user;
     
-    @NotNull(message = "Bundle ID is required")
-    private Long bundleId;
+    @NotEmpty(message = "At least one bundle must be selected")
+    private List<Long> bundleIds;
     
-    @NotNull(message = "Location details are required")
-    private LocationDTO location;
+    @NotNull(message = "Location is required")
+    private Long locationId;
 }

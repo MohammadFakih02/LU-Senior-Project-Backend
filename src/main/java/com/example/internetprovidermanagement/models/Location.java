@@ -47,6 +47,6 @@ public class Location extends BaseEntity {
     private String floor;
     
     @Size(max = 255, message = "Google Maps URL must be less than 255 characters")
-    @Column(name = "GoogleMapsURL")
+    @Column(name = "google_maps_url")
     private String googleMapsUrl;
 }

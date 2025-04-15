@@ -11,40 +11,35 @@ import com.example.internetprovidermanagement.mappers.LocationMapper;
 import com.example.internetprovidermanagement.models.Location;
 import com.example.internetprovidermanagement.repositories.LocationRepository;
 
-@Service
-public class LocationService {
+import lombok.RequiredArgsConstructor;
 
+@Service
+@RequiredArgsConstructor
+public class LocationService {
     private final LocationRepository locationRepository;
     private final LocationMapper locationMapper;
 
-    public LocationService(LocationRepository locationRepository, LocationMapper locationMapper) {
-        this.locationRepository = locationRepository;
-        this.locationMapper = locationMapper;
-    }
-
     public LocationDTO createLocation(LocationDTO locationDTO) {
-        Location location = locationMapper.toLocation(locationDTO);
+        Location location = locationMapper.toEntity(locationDTO);
         Location savedLocation = locationRepository.save(location);
-        return locationMapper.toLocationDTO(savedLocation);
+        return locationMapper.toDto(savedLocation);
     }
 
     public LocationDTO getLocationById(Long id) {
         Location location = locationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Location not found with id: " + id));
-        return locationMapper.toLocationDTO(location);
+        return locationMapper.toDto(location);
     }
 
     public List<LocationDTO> getAllLocations() {
-        return locationRepository.findAll()
-                .stream()
-                .map(locationMapper::toLocationDTO)
+        return locationRepository.findAll().stream()
+                .map(locationMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     public List<LocationDTO> getLocationsByCity(String city) {
-        return locationRepository.findByCity(city)
-                .stream()
-                .map(locationMapper::toLocationDTO)
+        return locationRepository.findByCity(city).stream()
+                .map(locationMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -52,15 +47,9 @@ public class LocationService {
         Location existingLocation = locationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Location not found with id: " + id));
         
-        existingLocation.setAddress(locationDTO.getAddress());
-        existingLocation.setCity(locationDTO.getCity());
-        existingLocation.setStreet(locationDTO.getStreet());
-        existingLocation.setBuilding(locationDTO.getBuilding());
-        existingLocation.setFloor(locationDTO.getFloor());
-        existingLocation.setGoogleMapsUrl(locationDTO.getGoogleMapsUrl());
-        
+        locationMapper.updateLocationFromDto(locationDTO, existingLocation);
         Location updatedLocation = locationRepository.save(existingLocation);
-        return locationMapper.toLocationDTO(updatedLocation);
+        return locationMapper.toDto(updatedLocation);
     }
 
     public void deleteLocation(Long id) {

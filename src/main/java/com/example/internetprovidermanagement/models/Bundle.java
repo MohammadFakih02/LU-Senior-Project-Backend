@@ -57,7 +57,7 @@ public class Bundle extends BaseEntity {
     
     @NotNull(message = "DataCap is required")
     @Min(value = 0, message = "DataCap must be a non-negative integer")
-    @Column(name = "DataCap", nullable = false)
+    @Column(name = "data_cap", nullable = false)
     private Integer dataCap;
     
     @NotNull(message = "Speed is required")

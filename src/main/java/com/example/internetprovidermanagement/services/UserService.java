@@ -1,93 +1,88 @@
 package com.example.internetprovidermanagement.services;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.internetprovidermanagement.dtos.BundleDTO;
 import com.example.internetprovidermanagement.dtos.CreateUserDTO;
-import com.example.internetprovidermanagement.dtos.LocationDTO;
 import com.example.internetprovidermanagement.dtos.UserDTO;
 import com.example.internetprovidermanagement.dtos.UserDetailsDTO;
 import com.example.internetprovidermanagement.exceptions.ConflictException;
 import com.example.internetprovidermanagement.exceptions.ResourceNotFoundException;
-import com.example.internetprovidermanagement.mappers.BundleMapper;
-import com.example.internetprovidermanagement.mappers.LocationMapper;
 import com.example.internetprovidermanagement.mappers.UserMapper;
 import com.example.internetprovidermanagement.models.Bundle;
 import com.example.internetprovidermanagement.models.Location;
 import com.example.internetprovidermanagement.models.User;
+import com.example.internetprovidermanagement.models.User.UserStatus;
+import com.example.internetprovidermanagement.models.UserBundle;
+import com.example.internetprovidermanagement.repositories.BundleRepository;
 import com.example.internetprovidermanagement.repositories.LocationRepository;
 import com.example.internetprovidermanagement.repositories.UserRepository;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class UserService {
-
     private final UserRepository userRepository;
-    private final BundleService bundleService;
-    private final LocationService locationService;
+    private final BundleRepository bundleRepository;
     private final LocationRepository locationRepository;
     private final UserMapper userMapper;
-    private final BundleMapper bundleMapper;
-    private final LocationMapper locationMapper;
 
-    public UserService(UserRepository userRepository,
-                     BundleService bundleService,
-                     LocationService locationService,
-                     LocationRepository locationRepository,
-                     UserMapper userMapper,
-                     BundleMapper bundleMapper,
-                     LocationMapper locationMapper) {
-        this.userRepository = userRepository;
-        this.bundleService = bundleService;
-        this.locationService = locationService;
-        this.locationRepository = locationRepository;
-        this.userMapper = userMapper;
-        this.bundleMapper = bundleMapper;
-        this.locationMapper = locationMapper;
+public UserDTO createUser(CreateUserDTO createUserDTO) {
+    UserDTO userDTO = createUserDTO.getUser();
+    
+    if (userRepository.existsByEmail(userDTO.getEmail())) {
+        throw new ConflictException("Email already in use: " + userDTO.getEmail());
+    }
+    if (userRepository.existsByPhone(userDTO.getPhone())) {
+        throw new ConflictException("Phone number already in use: " + userDTO.getPhone());
     }
 
-    public UserDTO createUser(CreateUserDTO createUserDTO) {
-        UserDTO userDTO = createUserDTO.getUser();
-        
-        if (userRepository.existsByEmail(userDTO.getEmail())) {
-            throw new ConflictException("Email already in use: " + userDTO.getEmail());
-        }
-        if (userRepository.existsByPhone(userDTO.getPhone())) {
-            throw new ConflictException("Phone number already in use: " + userDTO.getPhone());
-        }
+    Location location = locationRepository.findById(createUserDTO.getLocationId())
+            .orElseThrow(() -> new ResourceNotFoundException("Location not found with ID: " + createUserDTO.getLocationId()));
 
-        Bundle bundle = getBundleById(createUserDTO.getBundleId());
+    User user = userMapper.toEntity(userDTO);
+    user.setLocation(location);
+    user.setSubscriptionDate(LocalDate.now());
+    user.setStatus(UserStatus.ACTIVE);
+
+    // Save user first to get the ID
+    User savedUser = userRepository.save(user);
+    
+    // Create and save UserBundle associations
+    createUserDTO.getBundleIds().forEach(bundleId -> {
+        Bundle bundle = bundleRepository.findById(bundleId)
+            .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with ID: " + bundleId));
         
-        LocationDTO locationDTO = createUserDTO.getLocation();
-        Location location = locationMapper.toLocation(locationDTO);
-        Location savedLocation = locationRepository.save(location);
+        UserBundle userBundle = new UserBundle();
+        userBundle.setUser(savedUser);
+        userBundle.setBundle(bundle);
+        userBundle.setSubscriptionDate(savedUser.getSubscriptionDate());
+        userBundle.setStatus(UserStatus.ACTIVE);
         
-        User user = userMapper.toUserWithRelations(userDTO, bundle, savedLocation);
-        User savedUser = userRepository.save(user);
-        
-        return userMapper.toUserDTO(savedUser);
-    }
+        savedUser.getBundles().add(userBundle);
+    });
+
+    // Save again to persist the associations
+    User finalUser = userRepository.save(savedUser);
+    return userMapper.toDto(finalUser);
+}
 
     public List<UserDTO> getAllUsers() {
         return userRepository.findAll().stream()
-                .map(userMapper::toUserDTO)
+                .map(userMapper::toDto)
                 .collect(Collectors.toList());
     }
 
-public UserDetailsDTO getUserById(Long id) {
-    User user = userRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
-    return userMapper.toUserDetailsDTO(user);
-}
-
-    public UserDTO getUserByEmail(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
-        return userMapper.toUserDTO(user);
+    public UserDetailsDTO getUserById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
+        return userMapper.toDetailsDto(user);
     }
 
     public UserDTO updateUser(Long id, UserDTO userDTO) {
@@ -99,23 +94,9 @@ public UserDetailsDTO getUserById(Long id) {
             throw new ConflictException("Email already in use: " + userDTO.getEmail());
         }
         
-        if (!existingUser.getPhone().equals(userDTO.getPhone()) && 
-            userRepository.existsByPhone(userDTO.getPhone())) {
-            throw new ConflictException("Phone number already in use: " + userDTO.getPhone());
-        }
-
-        existingUser.setFirstName(userDTO.getFirstName());
-        existingUser.setLastName(userDTO.getLastName());
-        existingUser.setEmail(userDTO.getEmail());
-        existingUser.setLandLine(userDTO.getLandLine());
-        existingUser.setPhone(userDTO.getPhone());
-        existingUser.setConsumption(userDTO.getConsumption());
-        existingUser.setBill(userDTO.getBill());
-        existingUser.setSubscriptionDate(userDTO.getSubscriptionDate());
-        existingUser.setStatus(userDTO.getStatus());
-        
+        userMapper.updateUserFromDto(userDTO, existingUser);
         User updatedUser = userRepository.save(existingUser);
-        return userMapper.toUserDTO(updatedUser);
+        return userMapper.toDto(updatedUser);
     }
 
     public void deleteUser(Long id) {
@@ -123,10 +104,5 @@ public UserDetailsDTO getUserById(Long id) {
             throw new ResourceNotFoundException("User not found with ID: " + id);
         }
         userRepository.deleteById(id);
-    }
-
-    private Bundle getBundleById(Long bundleId) {
-        BundleDTO bundleDTO = bundleService.getBundleById(bundleId);
-        return bundleMapper.toBundle(bundleDTO);
     }
 }

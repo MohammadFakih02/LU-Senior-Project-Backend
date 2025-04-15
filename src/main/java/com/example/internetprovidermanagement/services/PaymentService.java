@@ -1,6 +1,6 @@
 package com.example.internetprovidermanagement.services;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -11,61 +11,54 @@ import com.example.internetprovidermanagement.dtos.PaymentDTO;
 import com.example.internetprovidermanagement.exceptions.ResourceNotFoundException;
 import com.example.internetprovidermanagement.mappers.PaymentMapper;
 import com.example.internetprovidermanagement.models.Payment;
-import com.example.internetprovidermanagement.models.User;
+import com.example.internetprovidermanagement.models.UserBundle;
 import com.example.internetprovidermanagement.repositories.PaymentRepository;
-import com.example.internetprovidermanagement.repositories.UserRepository;
+import com.example.internetprovidermanagement.repositories.UserBundleRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class PaymentService {
-
     private final PaymentRepository paymentRepository;
-    private final UserRepository userRepository;
+    private final UserBundleRepository userBundleRepository;
     private final PaymentMapper paymentMapper;
 
-    public PaymentService(PaymentRepository paymentRepository,
-                         UserRepository userRepository,
-                         PaymentMapper paymentMapper) {
-        this.paymentRepository = paymentRepository;
-        this.userRepository = userRepository;
-        this.paymentMapper = paymentMapper;
-    }
-
     public PaymentDTO createPayment(PaymentDTO paymentDTO) {
-        // Get the user entity from repository
-        User user = userRepository.findById(paymentDTO.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + paymentDTO.getUserId()));
+        UserBundle userBundle = userBundleRepository.findById(paymentDTO.getUserBundleId())
+                .orElseThrow(() -> new ResourceNotFoundException("UserBundle not found with ID: " + paymentDTO.getUserBundleId()));
 
-        Payment payment = paymentMapper.toPayment(paymentDTO);
-        payment.setUser(user); // Set the complete user entity
-
+        Payment payment = paymentMapper.toEntity(paymentDTO);
+        payment.setUserBundle(userBundle);
+        
         if (payment.getPaymentDate() == null) {
-            payment.setPaymentDate(LocalDate.now());
+            payment.setPaymentDate(LocalDateTime.now());
         }
 
         Payment savedPayment = paymentRepository.save(payment);
-        return paymentMapper.toPaymentDTO(savedPayment);
+        return paymentMapper.toDto(savedPayment);
     }
 
     public List<PaymentDTO> getAllPayments() {
         return paymentRepository.findAll().stream()
-                .map(paymentMapper::toPaymentDTO)
+                .map(paymentMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     public PaymentDTO getPaymentById(Long id) {
         Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found with ID: " + id));
-        return paymentMapper.toPaymentDTO(payment);
+        return paymentMapper.toDto(payment);
     }
 
-    public List<PaymentDTO> getPaymentsByUserId(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new ResourceNotFoundException("User not found with ID: " + userId);
+    public List<PaymentDTO> getPaymentsByUserBundleId(Long userBundleId) {
+        if (!userBundleRepository.existsById(userBundleId)) {
+            throw new ResourceNotFoundException("UserBundle not found with ID: " + userBundleId);
         }
         
-        return paymentRepository.findByUserId(userId).stream()
-                .map(paymentMapper::toPaymentDTO)
+        return paymentRepository.findByUserBundleId(userBundleId).stream()
+                .map(paymentMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -73,21 +66,15 @@ public class PaymentService {
         Payment existingPayment = paymentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found with ID: " + id));
 
-        // Only update user if it's different
-        if (!existingPayment.getUser().getId().equals(paymentDTO.getUserId())) {
-            User user = userRepository.findById(paymentDTO.getUserId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + paymentDTO.getUserId()));
-            existingPayment.setUser(user);
+        if (!existingPayment.getUserBundle().getId().equals(paymentDTO.getUserBundleId())) {
+            UserBundle userBundle = userBundleRepository.findById(paymentDTO.getUserBundleId())
+                    .orElseThrow(() -> new ResourceNotFoundException("UserBundle not found with ID: " + paymentDTO.getUserBundleId()));
+            existingPayment.setUserBundle(userBundle);
         }
 
-        existingPayment.setAmount(paymentDTO.getAmount());
-        existingPayment.setPaymentDate(paymentDTO.getPaymentDate());
-        existingPayment.setStatus(paymentDTO.getStatus());
-        existingPayment.setMethod(paymentDTO.getMethod());
-        existingPayment.setDueDate(paymentDTO.getDueDate());
-
+        paymentMapper.updatePaymentFromDto(paymentDTO, existingPayment);
         Payment updatedPayment = paymentRepository.save(existingPayment);
-        return paymentMapper.toPaymentDTO(updatedPayment);
+        return paymentMapper.toDto(updatedPayment);
     }
 
     public void deletePayment(Long id) {
