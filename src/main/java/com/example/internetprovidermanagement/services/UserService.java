@@ -48,8 +48,22 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserDetailsDTO getUserById(Long id) {
-        User user = userRepository.findById(id)
+        User user = userRepository.findByIdWithBundlesAndLocation(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        
+        // Force loading of all relationships if needed
+        if (user.getBundles() != null) {
+            user.getBundles().size(); // This forces loading
+            for (UserBundle bundle : user.getBundles()) {
+                if (bundle.getBundle() != null) {
+                    bundle.getBundle().getName();
+                }
+                if (bundle.getLocation() != null) {
+                    bundle.getLocation().getAddress();
+                }
+            }
+        }
+        
         return userMapper.toUserDetailsDTO(user);
     }
 
@@ -61,19 +75,22 @@ public class UserService {
         if (userRepository.existsByPhone(userDTO.getPhone())) {
             throw new ConflictException("Phone number already in use");
         }
-
+    
         User user = userMapper.toUser(userDTO);
-        Location location = locationMapper.toLocation(userDTO.getLocation());
-        user.setLocation(locationRepository.save(location));
-
+        Location userLocation = locationMapper.toLocation(userDTO.getLocation());
+        user.setLocation(locationRepository.save(userLocation));
+    
         User savedUser = userRepository.save(user);
         
-        // Add bundles if specified
-        if (userDTO.getBundleIds() != null && !userDTO.getBundleIds().isEmpty()) {
-            addBundlesToUser(savedUser.getId(), userDTO.getBundleIds());
+        if (userDTO.getBundleSubscriptions() != null && !userDTO.getBundleSubscriptions().isEmpty()) {
+            addBundlesToUser(savedUser, userDTO.getBundleSubscriptions());
         }
-
-        return userMapper.toUserDetailsDTO(savedUser);
+    
+        // Fetch the user with bundles eagerly loaded
+        User userWithBundles = userRepository.findById(savedUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + savedUser.getId()));
+        
+        return userMapper.toUserDetailsDTO(userWithBundles);
     }
 
     @Transactional
@@ -81,57 +98,72 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
-        // Update basic user info
         userMapper.updateUserFromDto(userDTO, user);
 
-        // Update location if changed
         if (userDTO.getLocation() != null) {
             Location location = user.getLocation();
             locationMapper.updateLocationFromDto(userDTO.getLocation(), location);
             locationRepository.save(location);
         }
 
-        // Update bundles if specified
-        if (userDTO.getBundleIds() != null) {
-            updateUserBundles(user, userDTO.getBundleIds());
+        if (userDTO.getBundleSubscriptions() != null) {
+            updateUserBundles(user, userDTO.getBundleSubscriptions());
         }
 
         return userMapper.toUserDetailsDTO(userRepository.save(user));
     }
 
-    private void updateUserBundles(User user, Set<Long> bundleIds) {
-        // Remove bundles not in the new set
-        user.getBundles().removeIf(ub -> !bundleIds.contains(ub.getBundle().getBundleId()));
-
-        // Add new bundles
-        Set<Long> existingBundleIds = user.getBundles().stream()
-                .map(ub -> ub.getBundle().getBundleId())
-                .collect(Collectors.toSet());
-        
-        bundleIds.stream()
-                .filter(bundleId -> !existingBundleIds.contains(bundleId))
-                .forEach(bundleId -> addBundleToUser(user, bundleId));
+    private void addBundlesToUser(User user, Set<CreateUpdateUserDTO.UserBundleSubscriptionDTO> bundleSubscriptions) {
+        bundleSubscriptions.forEach(subscription -> addBundleToUser(user, subscription));
     }
 
-    private void addBundlesToUser(Long userId, Set<Long> bundleIds) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    private void addBundleToUser(User user, CreateUpdateUserDTO.UserBundleSubscriptionDTO subscription) {
+        Bundle bundle = bundleRepository.findById(subscription.getBundleId())
+                .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with id: " + subscription.getBundleId()));
         
-        bundleIds.forEach(bundleId -> addBundleToUser(user, bundleId));
-    }
-
-    private void addBundleToUser(User user, Long bundleId) {
-        Bundle bundle = bundleRepository.findById(bundleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Bundle not found"));
-        
-        if (userBundleRepository.existsByUserIdAndBundleId(user.getId(), bundleId)) {
+        if (userBundleRepository.existsByUserIdAndBundleBundleId(user.getId(), bundle.getBundleId())) {
             throw new ConflictException("User already has this bundle");
         }
+
+        Location subscriptionLocation = locationMapper.toLocation(subscription.getLocation());
+        Location savedLocation = locationRepository.save(subscriptionLocation);
 
         UserBundle userBundle = new UserBundle();
         userBundle.setUser(user);
         userBundle.setBundle(bundle);
-        userBundle.setSubscriptionDate(user.getSubscriptionDate());
+        userBundle.setSubscriptionDate(subscription.getSubscriptionDate());
+        userBundle.setLocation(savedLocation);
         userBundleRepository.save(userBundle);
+    }
+
+    private void updateUserBundles(User user, Set<CreateUpdateUserDTO.UserBundleSubscriptionDTO> bundleSubscriptions) {
+        Set<Long> newBundleIds = bundleSubscriptions.stream()
+                .map(CreateUpdateUserDTO.UserBundleSubscriptionDTO::getBundleId)
+                .collect(Collectors.toSet());
+
+        user.getBundles().removeIf(ub -> !newBundleIds.contains(ub.getBundle().getBundleId()));
+
+        bundleSubscriptions.forEach(subscription -> {
+            user.getBundles().stream()
+            .filter(ub -> ub.getBundle().getBundleId().equals(subscription.getBundleId()))
+                .findFirst()
+                .ifPresentOrElse(
+                    ub -> {
+                        ub.setSubscriptionDate(subscription.getSubscriptionDate());
+                        Location location = ub.getLocation();
+                        locationMapper.updateLocationFromDto(subscription.getLocation(), location);
+                        locationRepository.save(location);
+                        userBundleRepository.save(ub);
+                    },
+                    () -> addBundleToUser(user, subscription)
+                );
+        });
+    }
+
+    @Transactional
+    public void deleteUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        userRepository.delete(user);
     }
 }

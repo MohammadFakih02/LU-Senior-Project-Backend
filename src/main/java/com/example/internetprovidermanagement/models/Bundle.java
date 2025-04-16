@@ -48,7 +48,7 @@ public class Bundle extends BaseEntity {
     private BigDecimal price;
     
     @Min(value = 0, message = "Data cap cannot be negative")
-    @Column(nullable = false)
+    @Column(nullable = false, name="data_cap")
     private Integer dataCap = 0;
     
     @Min(value = 0, message = "Speed cannot be negative")

@@ -34,13 +34,22 @@ public class CreateUpdateUserDTO {
     @Size(max = 45)
     private String phone;
     
-    @NotNull
-    private LocalDate subscriptionDate;
-    
     private User.UserStatus status = User.UserStatus.ACTIVE;
     
     @NotNull
     private LocationDTO location;
     
-    private Set<Long> bundleIds = new HashSet<>();
+    private Set<UserBundleSubscriptionDTO> bundleSubscriptions = new HashSet<>();
+    
+    @Data
+    public static class UserBundleSubscriptionDTO {
+        @NotNull
+        private Long bundleId;
+        
+        @NotNull
+        private LocalDate subscriptionDate;
+        
+        @NotNull
+        private LocationDTO location;
+    }
 }

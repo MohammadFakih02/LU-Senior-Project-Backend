@@ -5,7 +5,6 @@ CREATE TABLE IF NOT EXISTS `Users` (
   `email` VARCHAR(60) NULL,
   `landline` VARCHAR(45) NULL,
   `phone` VARCHAR(45) NOT NULL,
-  `subscription_date` DATE NOT NULL,
   `status` VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
   `location_id` BIGINT NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -13,5 +12,5 @@ CREATE TABLE IF NOT EXISTS `Users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_email` (`email`),
   UNIQUE KEY `uk_phone` (`phone`),
-  FOREIGN KEY (`location_id`) REFERENCES `Locations`(`LocationID`)
+  FOREIGN KEY (`location_id`) REFERENCES `Locations`(`Location_id`)
 );

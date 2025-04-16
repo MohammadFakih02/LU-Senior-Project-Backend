@@ -1,6 +1,5 @@
 package com.example.internetprovidermanagement.dtos;
 
-import java.time.LocalDate;
 import java.util.Set;
 
 import lombok.Data;
@@ -13,7 +12,6 @@ public class UserDetailsDTO {
     private String email;
     private String landLine;
     private String phone;
-    private LocalDate subscriptionDate;
     private String status;
     private LocationDTO location;
     private Set<UserBundleDetailsDTO> bundles;

@@ -4,6 +4,7 @@ package com.example.internetprovidermanagement.models;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -51,6 +52,11 @@ public class UserBundle extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BundleStatus status = BundleStatus.ACTIVE;
+
+    @NotNull(message = "Location is required")
+    @ManyToOne(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinColumn(name = "location_id", nullable = false)
+    private Location location;
     
     @DecimalMin(value = "0.0", message = "Consumption cannot be negative")
     @Column(precision = 10, scale = 2)

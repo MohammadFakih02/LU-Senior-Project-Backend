@@ -26,4 +26,7 @@ public class UserBundleDTO {
     
     @DecimalMin("0.0")
     private BigDecimal consumption = BigDecimal.ZERO;
+    
+    @NotNull
+    private LocationDTO location;
 }

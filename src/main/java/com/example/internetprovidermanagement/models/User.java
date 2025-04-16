@@ -1,7 +1,6 @@
 // User.java (updated)
 package com.example.internetprovidermanagement.models;
 
-import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -55,17 +54,13 @@ public class User extends BaseEntity {
     private String email;
     
     @Size(max = 45, message = "Landline must be less than 45 characters")
-    @Column(name = "land_line")
+    @Column(name = "landline")
     private String landLine;
     
     @NotBlank(message = "Phone number is required")
     @Size(max = 45, message = "Phone number must be less than 45 characters")
     @Column(nullable = false, unique = true)
     private String phone;
-    
-    @NotNull(message = "Subscription date is required")
-    @Column(name = "subscription_date", nullable = false)
-    private LocalDate subscriptionDate;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
