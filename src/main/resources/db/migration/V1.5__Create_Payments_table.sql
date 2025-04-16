@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS `Payments` (
   `payment_date` DATETIME,
   `due_date` DATETIME,
   `payment_method` VARCHAR(50),
+  'status' VARCHAR(50) NOT NULL,
   `user_bundle_id` BIGINT NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
