@@ -2,6 +2,7 @@ package com.example.internetprovidermanagement.mappers;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.factory.Mappers;
 
 import com.example.internetprovidermanagement.dtos.BundleDTO;
@@ -20,4 +21,9 @@ public interface BundleMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Bundle toBundle(BundleDTO bundleDTO);
+
+    @Mapping(target = "bundleId", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void updateBundleFromDto(BundleDTO bundleDTO, @MappingTarget Bundle bundle);
 }

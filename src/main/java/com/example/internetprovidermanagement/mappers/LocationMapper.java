@@ -2,6 +2,7 @@ package com.example.internetprovidermanagement.mappers;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.factory.Mappers;
 
 import com.example.internetprovidermanagement.dtos.LocationDTO;
@@ -17,4 +18,9 @@ public interface LocationMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Location toLocation(LocationDTO locationDTO);
+
+    @Mapping(target = "locationId", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void updateLocationFromDto(LocationDTO locationDTO, @MappingTarget Location location);
 }

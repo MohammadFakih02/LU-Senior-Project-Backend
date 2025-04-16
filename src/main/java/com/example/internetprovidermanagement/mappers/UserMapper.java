@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 import org.mapstruct.factory.Mappers;
 
@@ -34,6 +35,13 @@ public interface UserMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "id", ignore = true)
     User toUser(CreateUpdateUserDTO createUpdateUserDTO);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "location", ignore = true)
+    @Mapping(target = "bundles", ignore = true)
+    void updateUserFromDto(CreateUpdateUserDTO dto, @MappingTarget User user);
 
     @Named("mapBundles")
     default Set<UserBundleDetailsDTO> mapBundles(Set<UserBundle> bundles) {
