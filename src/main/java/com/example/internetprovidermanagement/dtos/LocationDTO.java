@@ -1,4 +1,3 @@
-// LocationDTO.java
 package com.example.internetprovidermanagement.dtos;
 
 import org.hibernate.validator.constraints.URL;
