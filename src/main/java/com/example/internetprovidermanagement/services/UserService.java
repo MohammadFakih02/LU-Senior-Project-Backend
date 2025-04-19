@@ -1,5 +1,6 @@
 package com.example.internetprovidermanagement.services;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -117,49 +118,54 @@ public class UserService {
         bundleSubscriptions.forEach(subscription -> addBundleToUser(user, subscription));
     }
 
-    private void addBundleToUser(User user, CreateUpdateUserDTO.UserBundleSubscriptionDTO subscription) {
-        Bundle bundle = bundleRepository.findById(subscription.getBundleId())
-                .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with id: " + subscription.getBundleId()));
-        
-        if (userBundleRepository.existsByUserIdAndBundleBundleId(user.getId(), bundle.getBundleId())) {
-            throw new ConflictException("User already has this bundle");
-        }
+// In UserService.java
 
-        Location subscriptionLocation = locationMapper.toLocation(subscription.getLocation());
-        Location savedLocation = locationRepository.save(subscriptionLocation);
-
-        UserBundle userBundle = new UserBundle();
-        userBundle.setUser(user);
-        userBundle.setBundle(bundle);
-        userBundle.setSubscriptionDate(subscription.getSubscriptionDate());
-        userBundle.setLocation(savedLocation);
-        userBundleRepository.save(userBundle);
+private void addBundleToUser(User user, CreateUpdateUserDTO.UserBundleSubscriptionDTO subscription) {
+    Bundle bundle = bundleRepository.findById(subscription.getBundleId())
+            .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with id: " + subscription.getBundleId()));
+    
+    if (userBundleRepository.existsByUserIdAndBundleBundleId(user.getId(), bundle.getBundleId())) {
+        throw new ConflictException("User already has this bundle");
     }
 
-    private void updateUserBundles(User user, Set<CreateUpdateUserDTO.UserBundleSubscriptionDTO> bundleSubscriptions) {
-        Set<Long> newBundleIds = bundleSubscriptions.stream()
-                .map(CreateUpdateUserDTO.UserBundleSubscriptionDTO::getBundleId)
-                .collect(Collectors.toSet());
+    Location subscriptionLocation = locationMapper.toLocation(subscription.getLocation());
+    Location savedLocation = locationRepository.save(subscriptionLocation);
 
-        user.getBundles().removeIf(ub -> !newBundleIds.contains(ub.getBundle().getBundleId()));
+    UserBundle userBundle = new UserBundle();
+    userBundle.setUser(user);
+    userBundle.setBundle(bundle);
+    userBundle.setSubscriptionDate(LocalDate.now()); // Auto-set to current date
+    userBundle.setLocation(savedLocation);
+    userBundleRepository.save(userBundle);
+}
 
-        bundleSubscriptions.forEach(subscription -> {
-            user.getBundles().stream()
-            .filter(ub -> ub.getBundle().getBundleId().equals(subscription.getBundleId()))
-                .findFirst()
-                .ifPresentOrElse(
-                    ub -> {
-                        ub.setSubscriptionDate(subscription.getSubscriptionDate());
-                        Location location = ub.getLocation();
-                        locationMapper.updateLocationFromDto(subscription.getLocation(), location);
-                        locationRepository.save(location);
-                        userBundleRepository.save(ub);
-                    },
-                    () -> addBundleToUser(user, subscription)
-                );
-        });
-    }
+private void updateUserBundles(User user, Set<CreateUpdateUserDTO.UserBundleSubscriptionDTO> bundleSubscriptions) {
+    Set<Long> newBundleIds = bundleSubscriptions.stream()
+            .map(CreateUpdateUserDTO.UserBundleSubscriptionDTO::getBundleId)
+            .collect(Collectors.toSet());
 
+    user.getBundles().removeIf(ub -> !newBundleIds.contains(ub.getBundle().getBundleId()));
+
+    bundleSubscriptions.forEach(subscription -> {
+        user.getBundles().stream()
+        .filter(ub -> ub.getBundle().getBundleId().equals(subscription.getBundleId()))
+            .findFirst()
+            .ifPresentOrElse(
+                ub -> {
+                    // For existing bundles, we don't update the subscription date
+                    Location location = ub.getLocation();
+                    locationMapper.updateLocationFromDto(subscription.getLocation(), location);
+                    locationRepository.save(location);
+                    userBundleRepository.save(ub);
+                },
+                () -> {
+                    // For new bundles being added during update, set current date
+                    subscription.setSubscriptionDate(LocalDate.now());
+                    addBundleToUser(user, subscription);
+                }
+            );
+    });
+}
     @Transactional
     public void deleteUser(Long id) {
         User user = userRepository.findById(id)
