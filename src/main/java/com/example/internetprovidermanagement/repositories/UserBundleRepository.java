@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import com.example.internetprovidermanagement.models.Bundle;
+import com.example.internetprovidermanagement.models.Location;
 import com.example.internetprovidermanagement.models.User;
 import com.example.internetprovidermanagement.models.UserBundle;
 
@@ -21,6 +23,9 @@ public interface UserBundleRepository extends JpaRepository<UserBundle, Long> {
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.bundles WHERE u.id = :id")
     Optional<User> findByIdWithBundles(Long id);
 
+    boolean existsByUserAndBundleAndLocation(User user, Bundle bundle, Location location); 
+
+    Optional<UserBundle> findByUserAndBundleAndLocation(User user, Bundle bundle, Location location);
     
     boolean existsByUserIdAndBundleBundleId(Long userId, Long bundleId);
 }
