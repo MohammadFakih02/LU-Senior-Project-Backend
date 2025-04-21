@@ -7,10 +7,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.ExampleMatcher;
+import org.springframework.data.domain.ExampleMatcher.StringMatcher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.internetprovidermanagement.dtos.CreateUpdateUserDTO;
+import com.example.internetprovidermanagement.dtos.LocationDTO;
 import com.example.internetprovidermanagement.dtos.UserDetailsDTO;
 import com.example.internetprovidermanagement.dtos.UserResponseDTO;
 import com.example.internetprovidermanagement.exceptions.ConflictException;
@@ -80,8 +84,12 @@ public class UserService {
         }
     
         User user = userMapper.toUser(userDTO);
-        Location userLocation = locationMapper.toLocation(userDTO.getLocation());
-        user.setLocation(locationRepository.save(userLocation));
+        LocationDTO userLocationDTO = userDTO.getLocation();
+        Optional<Location> existingUserLocation = findExistingLocation(userLocationDTO);
+        Location userLocation = existingUserLocation.orElseGet(() -> 
+            locationRepository.save(locationMapper.toLocation(userLocationDTO))
+        );
+        user.setLocation(userLocation);
     
         User savedUser = userRepository.save(user);
         
@@ -99,14 +107,16 @@ public class UserService {
     @Transactional
     public UserDetailsDTO updateUser(Long id, CreateUpdateUserDTO userDTO) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
         userMapper.updateUserFromDto(userDTO, user);
 
         if (userDTO.getLocation() != null) {
-            Location location = user.getLocation();
-            locationMapper.updateLocationFromDto(userDTO.getLocation(), location);
-            locationRepository.save(location);
+            LocationDTO newLocationDTO = userDTO.getLocation();
+            Optional<Location> existingLocation = findExistingLocation(newLocationDTO);
+            user.setLocation(existingLocation.orElseGet(() -> 
+                locationRepository.save(locationMapper.toLocation(newLocationDTO))
+            ));
         }
 
         if (userDTO.getBundleSubscriptions() != null) {
@@ -120,55 +130,73 @@ public class UserService {
         bundleSubscriptions.forEach(subscription -> addBundleToUser(user, subscription));
     }
 
-private UserBundle addBundleToUser(User user, CreateUpdateUserDTO.UserBundleSubscriptionDTO subscription) {
-    Bundle bundle = bundleRepository.findById(subscription.getBundleId())
-            .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with id: " + subscription.getBundleId()));
-    
-    Location subscriptionLocation = locationMapper.toLocation(subscription.getLocation());
-    Location savedLocation = locationRepository.save(subscriptionLocation);
-
-    if (userBundleRepository.existsByUserAndBundleAndLocation(user, bundle, savedLocation)) {
-        throw new ConflictException("User already has this bundle at this location");
-    }
-
-    UserBundle userBundle = new UserBundle();
-    userBundle.setUser(user);
-    userBundle.setBundle(bundle);
-    userBundle.setSubscriptionDate(LocalDate.now()); // Auto-set to current date
-    userBundle.setLocation(savedLocation);
-    return userBundleRepository.save(userBundle); // Return the saved UserBundle
-}
-
-private void updateUserBundles(User user, Set<CreateUpdateUserDTO.UserBundleSubscriptionDTO> bundleSubscriptions) {
-    Set<Long> processedUserBundleIds = new HashSet<>();
-
-    bundleSubscriptions.forEach(subscription -> {
+    private UserBundle addBundleToUser(User user, CreateUpdateUserDTO.UserBundleSubscriptionDTO subscription) {
         Bundle bundle = bundleRepository.findById(subscription.getBundleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with id: " + subscription.getBundleId()));
         
-        Location subscriptionLocation = locationMapper.toLocation(subscription.getLocation());
-        Location savedLocation = locationRepository.save(subscriptionLocation);
-
-        Optional<UserBundle> existingUserBundle = userBundleRepository.findByUserAndBundleAndLocation(user, bundle, savedLocation);
-
-        existingUserBundle.ifPresentOrElse(
-            ub -> {
-                // Update existing UserBundle (keep original subscription date)
-                locationMapper.updateLocationFromDto(subscription.getLocation(), ub.getLocation());
-                locationRepository.save(ub.getLocation());
-                processedUserBundleIds.add(ub.getId());
-            },
-            () -> {
-                // Add new UserBundle and capture its ID
-                UserBundle newUb = addBundleToUser(user, subscription);
-                processedUserBundleIds.add(newUb.getId());
-            }
+        LocationDTO subscriptionLocationDTO = subscription.getLocation();
+        Optional<Location> existingLocation = findExistingLocation(subscriptionLocationDTO);
+        Location savedLocation = existingLocation.orElseGet(() -> 
+            locationRepository.save(locationMapper.toLocation(subscriptionLocationDTO))
         );
-    });
+    
+        if (userBundleRepository.existsByUserAndBundleAndLocation(user, bundle, savedLocation)) {
+            throw new ConflictException("User already has this bundle at this location");
+        }
+    
+        UserBundle userBundle = new UserBundle();
+        userBundle.setUser(user);
+        userBundle.setBundle(bundle);
+        userBundle.setSubscriptionDate(LocalDate.now());
+        userBundle.setLocation(savedLocation);
+        return userBundleRepository.save(userBundle);
+    }
 
-    // Remove UserBundles not included in the update
-    user.getBundles().removeIf(ub -> !processedUserBundleIds.contains(ub.getId()));
+    private void updateUserBundles(User user, Set<CreateUpdateUserDTO.UserBundleSubscriptionDTO> bundleSubscriptions) {
+        Set<Long> processedUserBundleIds = new HashSet<>();
+    
+        bundleSubscriptions.forEach(subscription -> {
+            Bundle bundle = bundleRepository.findById(subscription.getBundleId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with id: " + subscription.getBundleId()));
+            
+            LocationDTO subscriptionLocationDTO = subscription.getLocation();
+            Optional<Location> existingLocation = findExistingLocation(subscriptionLocationDTO);
+            Location savedLocation = existingLocation.orElseGet(() -> 
+                locationRepository.save(locationMapper.toLocation(subscriptionLocationDTO))
+            );
+    
+            Optional<UserBundle> existingUserBundle = userBundleRepository.findByUserAndBundleAndLocation(user, bundle, savedLocation);
+    
+            existingUserBundle.ifPresentOrElse(
+                ub -> processedUserBundleIds.add(ub.getId()),
+                () -> {
+                    UserBundle newUb = new UserBundle();
+                    newUb.setUser(user);
+                    newUb.setBundle(bundle);
+                    newUb.setSubscriptionDate(LocalDate.now());
+                    newUb.setLocation(savedLocation);
+                    UserBundle savedUb = userBundleRepository.save(newUb);
+                    processedUserBundleIds.add(savedUb.getId());
+                }
+            );
+        });
+    
+        user.getBundles().removeIf(ub -> !processedUserBundleIds.contains(ub.getId()));
+    }
+
+private Optional<Location> findExistingLocation(LocationDTO locationDTO) {
+    Location location = locationMapper.toLocation(locationDTO);
+    location.setLocationId(null); // Exclude ID from the search
+
+    ExampleMatcher matcher = ExampleMatcher.matching()
+            .withIncludeNullValues()
+            .withIgnorePaths("locationId")
+            .withStringMatcher(StringMatcher.EXACT);
+
+    Example<Location> example = Example.of(location, matcher);
+    return locationRepository.findOne(example);
 }
+
     @Transactional
     public void deleteUser(Long id) {
         User user = userRepository.findById(id)
