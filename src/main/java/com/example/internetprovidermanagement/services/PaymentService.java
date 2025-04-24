@@ -55,10 +55,19 @@ public class PaymentService {
         Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
 
-        paymentMapper.updatePaymentFromDto(paymentDTO, payment);
-        
-        if (payment.getStatus() == Payment.PaymentStatus.PAID && payment.getPaymentDate() == null) {
-            payment.setPaymentDate(LocalDateTime.now());
+        // Only update what's provided in DTO
+        if (paymentDTO.getAmount() != null) {
+            payment.setAmount(paymentDTO.getAmount());
+        }
+        if (paymentDTO.getPaymentMethod() != null) {
+            payment.setPaymentMethod(paymentDTO.getPaymentMethod());
+        }
+        if (paymentDTO.getStatus() != null) {
+            payment.setStatus(paymentDTO.getStatus());
+            // Auto-set payment date only if status changes to PAID
+            if (paymentDTO.getStatus() == Payment.PaymentStatus.PAID) {
+                payment.setPaymentDate(LocalDateTime.now());
+            }
         }
 
         return paymentMapper.toPaymentResponseDTO(paymentRepository.save(payment));
