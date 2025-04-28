@@ -1,9 +1,11 @@
 package com.example.internetprovidermanagement.repositories;
-import com.example.internetprovidermanagement.models.Bundle;
-import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.List;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.example.internetprovidermanagement.models.Bundle;
+
+@Repository
 public interface BundleRepository extends JpaRepository<Bundle, Long> {
-    // Optional: Find Bundles by type
-    List<Bundle> findByType(Bundle.BundleType type);
+    boolean existsByName(String name);
 }

@@ -119,4 +119,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handlePaymentProcessing(PaymentProcessingException ex, HttpServletRequest request) {
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, request);
     }
+    @ExceptionHandler(InvalidOperationException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidOperation(InvalidOperationException ex, HttpServletRequest request) {
+        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, request);
+    }
 }

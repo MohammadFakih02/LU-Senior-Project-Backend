@@ -1,7 +1,8 @@
+// Payment.java
 package com.example.internetprovidermanagement.models;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,6 +16,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -26,35 +29,38 @@ import lombok.Setter;
 @Setter
 public class Payment extends BaseEntity {
     
+    public enum PaymentStatus {
+        PAID, UNPAID, PENDING
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "PaymentID")
     private Long id;
     
     @NotNull(message = "Amount is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Amount must be greater than 0")
-    @Column(name = "Amount", nullable = false, precision = 10, scale = 2)
+    @DecimalMin(value = "0.01", message = "Amount must be greater than 0")
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
     
-    @Column(name = "PaymentDate")
-    private LocalDate paymentDate;
+    @Column(name = "payment_date")
+    private LocalDateTime paymentDate;
+    
+    @NotNull(message = "Due date is required")
+    @FutureOrPresent(message = "Due date must be in the present or future")
+    @Column(name = "due_date", nullable = false)
+    private LocalDateTime dueDate;
+    
+    @NotBlank(message = "Payment method is required")
+    @Size(max = 50, message = "Payment method must be less than 50 characters")
+    @Column(name = "payment_method")
+    private String paymentMethod;
     
     @Enumerated(EnumType.STRING)
-    @Column(name = "Status", nullable = false)
-    private PaymentStatus status;
+    @Column(nullable = false)
+    private PaymentStatus status = PaymentStatus.PENDING;
     
-    @Size(max = 50, message = "Method must be less than 50 characters")
-    @Column(name = "Method")
-    private String method;
-    
+    @NotNull(message = "User bundle is required")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "UserID", nullable = false)
-    private User user;
-    
-    @Column(name = "DueDate")
-    private LocalDate dueDate;
-
-    public enum PaymentStatus {
-        complete, pending, failed
-    }
+    @JoinColumn(name = "user_bundle_id", nullable = false)
+    private UserBundle userBundle;
 }
