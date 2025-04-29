@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.example.internetprovidermanagement.models.User;
+import com.example.internetprovidermanagement.models.UserBundle;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -48,6 +49,9 @@ public class CreateUpdateUserDTO {
         
         @NotNull
         private LocalDate subscriptionDate;
+        
+        @NotNull
+        private UserBundle.BundleStatus status = UserBundle.BundleStatus.ACTIVE;
         
         @NotNull
         private LocationDTO location;

@@ -241,7 +241,7 @@ public class UserService {
         if (bundleSubscriptions == null) {
             return;
         }
-
+    
         try {
             Set<Long> processedUserBundleIds = new HashSet<>();
         
@@ -252,7 +252,7 @@ public class UserService {
                 if (subscription.getLocation() == null) {
                     throw new ValidationException("Location is required for bundle subscription");
                 }
-
+    
                 Bundle bundle = bundleRepository.findById(subscription.getBundleId())
                         .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with id: " + subscription.getBundleId()));
                 
@@ -265,12 +265,24 @@ public class UserService {
                 Optional<UserBundle> existingUserBundle = userBundleRepository.findByUserAndBundleAndLocation(user, bundle, savedLocation);
         
                 existingUserBundle.ifPresentOrElse(
-                    ub -> processedUserBundleIds.add(ub.getId()),
+                    ub -> {
+                        // Update existing bundle properties including status
+                        ub.setSubscriptionDate(subscription.getSubscriptionDate() != null 
+                            ? subscription.getSubscriptionDate() 
+                            : LocalDate.now());
+                        ub.setStatus(subscription.getStatus());
+                        userBundleRepository.save(ub);
+                        processedUserBundleIds.add(ub.getId());
+                    },
                     () -> {
+                        // Create new bundle
                         UserBundle newUb = new UserBundle();
                         newUb.setUser(user);
                         newUb.setBundle(bundle);
-                        newUb.setSubscriptionDate(LocalDate.now());
+                        newUb.setSubscriptionDate(subscription.getSubscriptionDate() != null 
+                            ? subscription.getSubscriptionDate() 
+                            : LocalDate.now());
+                        newUb.setStatus(subscription.getStatus());
                         newUb.setLocation(savedLocation);
                         UserBundle savedUb = userBundleRepository.save(newUb);
                         processedUserBundleIds.add(savedUb.getId());

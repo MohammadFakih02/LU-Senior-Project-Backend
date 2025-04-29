@@ -50,7 +50,7 @@ public class UserBundle extends BaseEntity {
     private LocalDate subscriptionDate;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name="status",nullable = false)
     private BundleStatus status = BundleStatus.ACTIVE;
 
     @NotNull(message = "Location is required")
