@@ -61,4 +61,9 @@ public class UserBundle extends BaseEntity {
     @DecimalMin(value = "0.0", message = "Consumption cannot be negative")
     @Column(precision = 10, scale = 2)
     private BigDecimal consumption = BigDecimal.ZERO;
+
+    @Column(nullable = false)
+    private boolean deleted = false;
+
+
 }

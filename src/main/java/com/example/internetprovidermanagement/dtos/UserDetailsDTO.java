@@ -15,4 +15,5 @@ public class UserDetailsDTO {
     private String status;
     private LocationDTO location;
     private Set<UserBundleDetailsDTO> bundles;
+    private boolean deleted;
 }

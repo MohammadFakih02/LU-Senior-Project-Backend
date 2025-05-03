@@ -54,4 +54,7 @@ public class Bundle extends BaseEntity {
     @Min(value = 0, message = "Speed cannot be negative")
     @Column(nullable = false)
     private Integer speed = 0;
+
+    @Column(nullable = false)
+    private boolean deleted = false;
 }

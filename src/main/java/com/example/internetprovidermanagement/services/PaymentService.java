@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.example.internetprovidermanagement.exceptions.InvalidOperationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,7 +40,9 @@ public class PaymentService {
     public PaymentResponseDTO createPayment(CreatePaymentDTO paymentDTO) {
         UserBundle userBundle = userBundleRepository.findById(paymentDTO.getUserBundleId())
                 .orElseThrow(() -> new ResourceNotFoundException("User bundle not found"));
-
+        if (userBundle.isDeleted()) {
+            throw new InvalidOperationException("Cannot create payment for deleted user bundle");
+        }
         Payment payment = paymentMapper.toPayment(paymentDTO);
         payment.setUserBundle(userBundle);
         

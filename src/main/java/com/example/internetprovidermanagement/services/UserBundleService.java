@@ -68,6 +68,9 @@ public class UserBundleService {
         try {
             UserBundle userBundle = userBundleRepository.findById(id)
                     .orElseThrow(() -> new ResourceNotFoundException("User bundle not found with id: " + id));
+            if (userBundle.isDeleted()) {
+                throw new InvalidOperationException("Cannot update a deleted user bundle");
+            }
 
             // Validate bundle update
             if (userBundleDTO.getBundleId() != null && 
@@ -114,5 +117,8 @@ public class UserBundleService {
                 throw new OperationFailedException("Failed to update user bundle with id: " + id, ex);
             }
         }
+
     }
+
+
 }

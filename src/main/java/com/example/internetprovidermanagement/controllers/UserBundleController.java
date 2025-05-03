@@ -3,12 +3,7 @@ package com.example.internetprovidermanagement.controllers;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.example.internetprovidermanagement.dtos.UserBundleDTO;
 import com.example.internetprovidermanagement.dtos.UserBundleDetailsDTO;
@@ -34,5 +29,10 @@ public class UserBundleController {
             @PathVariable Long id,
             @Valid @RequestBody UserBundleDTO userBundleDTO) {
         return ResponseEntity.ok(userBundleService.updateUserBundle(id, userBundleDTO));
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUserBundle(@PathVariable Long id) {
+        userBundleService.deleteUserBundle(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -55,5 +55,8 @@ public class CreateUpdateUserDTO {
         
         @NotNull
         private LocationDTO location;
+
+
+        private boolean deleted;
     }
 }

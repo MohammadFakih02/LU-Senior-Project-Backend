@@ -322,27 +322,17 @@ public class UserService {
     }
 
     @Transactional
-    @SuppressWarnings("UseSpecificCatch")
     public void deleteUser(Long id) {
-        if (id == null) {
-            throw new ValidationException("User ID cannot be null");
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+
+        // Check for ACTIVE bundles only
+        if (user.getBundles().stream().anyMatch(ub -> !ub.isDeleted())) {
+            throw new InvalidOperationException("Cannot delete user with active bundles");
         }
 
-        try {
-            User user = userRepository.findById(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-            
-            if (!user.getBundles().isEmpty()) {
-                throw new InvalidOperationException("Cannot delete user with active bundles");
-            }
-            
-            userRepository.delete(user);
-        } catch (Exception ex) {
-            if (ex instanceof ResourceNotFoundException || ex instanceof InvalidOperationException) {
-                throw ex;
-            } else {
-                throw new OperationFailedException("Failed to delete user with id: " + id, ex);
-            }
-        }
+        user.setDeleted(true);
+        userRepository.save(user);
     }
+
 }

@@ -49,9 +49,10 @@ public class BundleService {
 
     @Transactional
     public void deleteBundle(Long id) {
-        if (!bundleRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Bundle not found with id: " + id);
-        }
-        bundleRepository.deleteById(id);
+        Bundle bundle = bundleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with id: " + id));
+        bundle.setDeleted(true);
+        bundleRepository.save(bundle);
     }
+
 }

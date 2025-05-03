@@ -14,4 +14,5 @@ public class BundleResponseDTO {
     private BigDecimal price;
     private Integer dataCap;
     private Integer speed;
+    private boolean deleted;
 }

@@ -58,9 +58,12 @@ public class Payment extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentStatus status = PaymentStatus.PENDING;
-    
+
     @NotNull(message = "User bundle is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_bundle_id", nullable = false)
     private UserBundle userBundle;
+
+
+
 }

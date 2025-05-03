@@ -29,4 +29,7 @@ public class UserBundleDTO {
     
     @NotNull
     private LocationDTO location;
+
+
+    private boolean deleted;
 }

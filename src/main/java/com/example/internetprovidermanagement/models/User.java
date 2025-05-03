@@ -73,4 +73,7 @@ public class User extends BaseEntity {
     
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<UserBundle> bundles = new HashSet<>();
+
+    @Column(nullable = false)
+    private boolean deleted = false;
 }

@@ -12,4 +12,5 @@ public class UserBundleDetailsDTO {
     private BigDecimal consumption;
     private BundleResponseDTO bundle;
     private LocationDTO bundleLocation;
+    private boolean deleted;
 }

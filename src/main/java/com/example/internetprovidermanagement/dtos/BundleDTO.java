@@ -34,4 +34,6 @@ public class BundleDTO {
     
     @Min(value = 0, message = "Speed cannot be negative")
     private Integer speed = 0;
+
+    private boolean deleted;
 }

@@ -28,17 +28,24 @@ public interface UserMapper {
     @Mapping(target = "location", source = "location")
     UserDetailsDTO toUserDetailsDTO(User user);
 
+    // Add to creation/update methods:
+    @Mapping(target = "deleted", ignore = true) // Protect deletion status
+
+// Updated toUser method:
     @Mapping(target = "bundles", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "deleted", ignore = true) // Add this
     User toUser(CreateUpdateUserDTO createUpdateUserDTO);
 
+    // Updated update method:
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "location", ignore = true)
     @Mapping(target = "bundles", ignore = true)
+    @Mapping(target = "deleted", ignore = true) // Add this
     void updateUserFromDto(CreateUpdateUserDTO dto, @MappingTarget User user);
 
     @Named("mapBundles")
