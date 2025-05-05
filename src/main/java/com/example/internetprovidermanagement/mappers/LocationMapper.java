@@ -12,9 +12,10 @@ public interface LocationMapper {
 
     LocationDTO toLocationDTO(Location location);
 
+    @Mapping(target = "locationId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    Location toLocation(LocationDTO locationDTO);
+    Location toLocation(LocationDTO dto);
 
     @Mapping(target = "locationId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)

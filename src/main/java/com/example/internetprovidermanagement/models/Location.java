@@ -13,6 +13,8 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.Objects;
+
 @Entity
 @Table(name = "Locations")
 @Getter
@@ -51,4 +53,21 @@ public class Location extends BaseEntity {
     @Size(max = 255, message = "Google Maps URL must be less than 255 characters")
     @Column(name = "google_maps_url")
     private String googleMapsUrl;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Location)) return false;
+        Location location = (Location) o;
+        return Objects.equals(address, location.address) &&
+                Objects.equals(city, location.city) &&
+                Objects.equals(street, location.street) &&
+                Objects.equals(building, location.building) &&
+                Objects.equals(floor, location.floor);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(address, city, street, building, floor);
+    }
 }
