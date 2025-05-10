@@ -10,7 +10,7 @@ import com.example.internetprovidermanagement.models.UserBundle;
 public interface UserBundleMapper {
 
     // Add to UserBundleDetailsDTO mapping:
-    @Mapping(target = "deleted", source = "deleted") // Include deletion status
+     // Include deletion status
 
 // Updated method:
     @Mapping(target = "userBundleId", source = "id")

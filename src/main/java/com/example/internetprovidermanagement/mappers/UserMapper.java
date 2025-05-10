@@ -29,7 +29,7 @@ public interface UserMapper {
     UserDetailsDTO toUserDetailsDTO(User user);
 
     // Add to creation/update methods:
-    @Mapping(target = "deleted", ignore = true) // Protect deletion status
+     // Protect deletion status
 
 // Updated toUser method:
     @Mapping(target = "bundles", ignore = true)
