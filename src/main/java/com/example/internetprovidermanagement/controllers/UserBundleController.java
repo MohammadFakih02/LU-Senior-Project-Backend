@@ -30,9 +30,4 @@ public class UserBundleController {
             @Valid @RequestBody UserBundleDTO userBundleDTO) {
         return ResponseEntity.ok(userBundleService.updateUserBundle(id, userBundleDTO));
     }
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUserBundle(@PathVariable Long id) {
-        userBundleService.deleteUserBundle(id);
-        return ResponseEntity.noContent().build();
-    }
 }

@@ -1,8 +1,8 @@
-// UserBundle.java (updated)
 package com.example.internetprovidermanagement.models;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Objects; // Import Objects
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -26,7 +26,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class UserBundle extends BaseEntity {
-    
+
     public enum BundleStatus {
         ACTIVE, INACTIVE
     }
@@ -34,21 +34,21 @@ public class UserBundle extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @NotNull(message = "User is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-    
+
     @NotNull(message = "Bundle is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bundle_id", nullable = false)
     private Bundle bundle;
-    
+
     @NotNull(message = "Subscription date is required")
     @Column(name = "subscription_date", nullable = false)
     private LocalDate subscriptionDate;
-    
+
     @Enumerated(EnumType.STRING)
     @Column(name="status",nullable = false)
     private BundleStatus status = BundleStatus.ACTIVE;
@@ -57,7 +57,7 @@ public class UserBundle extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinColumn(name = "location_id", nullable = false)
     private Location location;
-    
+
     @DecimalMin(value = "0.0", message = "Consumption cannot be negative")
     @Column(precision = 10, scale = 2)
     private BigDecimal consumption = BigDecimal.ZERO;
@@ -65,5 +65,19 @@ public class UserBundle extends BaseEntity {
     @Column(nullable = false)
     private boolean deleted = false;
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || !(o instanceof UserBundle)) return false;
+        UserBundle that = (UserBundle) o;
+        if (this.id == null || that.id == null) {
+            return false;
+        }
+        return Objects.equals(id, that.id);
+    }
 
+    @Override
+    public int hashCode() {
+        return id != null ? Objects.hashCode(id) : System.identityHashCode(this);
+    }
 }
