@@ -1,22 +1,17 @@
 package com.example.internetprovidermanagement.services;
 
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import com.example.internetprovidermanagement.dtos.*;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.data.domain.ExampleMatcher.StringMatcher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.internetprovidermanagement.dtos.CreateUpdateUserDTO;
-import com.example.internetprovidermanagement.dtos.LocationDTO;
-import com.example.internetprovidermanagement.dtos.UserDetailsDTO;
-import com.example.internetprovidermanagement.dtos.UserResponseDTO;
 import com.example.internetprovidermanagement.exceptions.ConflictException;
 import com.example.internetprovidermanagement.exceptions.InvalidOperationException;
 import com.example.internetprovidermanagement.exceptions.OperationFailedException;
@@ -45,48 +40,36 @@ public class UserService {
     private final LocationRepository locationRepository;
     private final UserMapper userMapper;
     private final LocationMapper locationMapper;
+    private final PaymentService paymentService;
 
-    @Transactional(readOnly = true)
     public List<UserResponseDTO> getAllUsers() {
-        try {
-            return userRepository.findAll().stream()
-                    .map(userMapper::toUserResponseDTO)
-                    .collect(Collectors.toList());
-        } catch (Exception ex) {
-            throw new OperationFailedException("Failed to retrieve users", ex);
-        }
+        // 1. Fetch non-deleted users with their non-deleted bundles from repository
+        List<User> users = userRepository.findAllActiveUsers();
+
+        // Filter out deleted bundles for each user
+        users.forEach(user ->
+                user.setBundles(
+                        user.getBundles().stream()
+                                .filter(ub -> !ub.isDeleted()) // Remove deleted bundles
+                                .collect(Collectors.toSet())
+                )
+        );
+
+        return userMapper.toUserResponseDTOList(users);
     }
 
     @Transactional(readOnly = true)
     public UserDetailsDTO getUserById(Long id) {
-        if (id == null) {
-            throw new ValidationException("User ID cannot be null");
-        }
+        User user = userRepository.findByIdWithBundlesAndLocation(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        try {
-            User user = userRepository.findByIdWithBundlesAndLocation(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-            
-            if (user.getBundles() != null) {
-                user.getBundles().size();
-                for (UserBundle bundle : user.getBundles()) {
-                    if (bundle.getBundle() != null) {
-                        bundle.getBundle().getName();
-                    }
-                    if (bundle.getLocation() != null) {
-                        bundle.getLocation().getAddress();
-                    }
-                }
-            }
-            
-            return userMapper.toUserDetailsDTO(user);
-        } catch (Exception ex) {
-            if (ex instanceof ResourceNotFoundException || ex instanceof ValidationException) {
-                throw ex;
-            } else {
-                throw new OperationFailedException("Failed to retrieve user with id: " + id, ex);
-            }
-        }
+        // Filter out deleted bundles
+        Set<UserBundle> activeBundles = user.getBundles().stream()
+                .filter(ub -> !ub.isDeleted()) // Keep non-deleted bundles
+                .collect(Collectors.toSet());
+        user.setBundles(activeBundles); // Replace the collection
+
+        return userMapper.toUserDetailsDTO(user);
     }
 
     @Transactional
@@ -146,8 +129,8 @@ public class UserService {
         }
 
         try {
-            User user = userRepository.findById(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+            User user = userRepository.findByIdWithBundlesAndPayments(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
             if (userDTO.getEmail() != null && !userDTO.getEmail().equals(user.getEmail())) {
                 if (userRepository.existsByEmail(userDTO.getEmail())) {
@@ -165,7 +148,7 @@ public class UserService {
             if (userDTO.getLocation() != null) {
                 LocationDTO newLocationDTO = userDTO.getLocation();
                 Optional<Location> existingLocation = findExistingLocation(newLocationDTO);
-                user.setLocation(existingLocation.orElseGet(() -> 
+                user.setLocation(existingLocation.orElseGet(() ->
                     locationRepository.save(locationMapper.toLocation(newLocationDTO))
                 ));
             }
@@ -173,6 +156,8 @@ public class UserService {
             if (userDTO.getBundleSubscriptions() != null) {
                 updateUserBundles(user, userDTO.getBundleSubscriptions());
             }
+
+            updateUserBundles(user, userDTO.getBundleSubscriptions());
 
             return userMapper.toUserDetailsDTO(userRepository.save(user));
         } catch (Exception ex) {
@@ -221,13 +206,19 @@ public class UserService {
             if (userBundleRepository.existsByUserAndBundleAndLocation(user, bundle, savedLocation)) {
                 throw new ConflictException("User already has bundle '" + bundle.getName() + "' at this location");
             }
-        
+
             UserBundle userBundle = new UserBundle();
             userBundle.setUser(user);
             userBundle.setBundle(bundle);
-            userBundle.setSubscriptionDate(LocalDate.now());
+            userBundle.setSubscriptionDate(subscription.getSubscriptionDate() != null ?
+                    subscription.getSubscriptionDate() : LocalDate.now());
+            userBundle.setStatus(subscription.getStatus());
             userBundle.setLocation(savedLocation);
-            return userBundleRepository.save(userBundle);
+
+            UserBundle savedUserBundle = userBundleRepository.save(userBundle);
+            createPaymentForUserBundle(savedUserBundle); // Create payment after saving
+
+            return savedUserBundle;
         } catch (Exception ex) {
             if (ex instanceof ResourceNotFoundException || ex instanceof ConflictException) {
                 throw ex;
@@ -237,67 +228,68 @@ public class UserService {
         }
     }
 
-    private void updateUserBundles(User user, Set<CreateUpdateUserDTO.UserBundleSubscriptionDTO> bundleSubscriptions) {
-        if (bundleSubscriptions == null) {
-            return;
-        }
-    
-        try {
-            Set<Long> processedUserBundleIds = new HashSet<>();
-        
-            bundleSubscriptions.forEach(subscription -> {
-                if (subscription.getBundleId() == null) {
-                    throw new ValidationException("Bundle ID is required");
-                }
-                if (subscription.getLocation() == null) {
-                    throw new ValidationException("Location is required for bundle subscription");
-                }
-    
-                Bundle bundle = bundleRepository.findById(subscription.getBundleId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with id: " + subscription.getBundleId()));
-                
-                LocationDTO subscriptionLocationDTO = subscription.getLocation();
-                Optional<Location> existingLocation = findExistingLocation(subscriptionLocationDTO);
-                Location savedLocation = existingLocation.orElseGet(() -> 
-                    locationRepository.save(locationMapper.toLocation(subscriptionLocationDTO))
-                );
-        
-                Optional<UserBundle> existingUserBundle = userBundleRepository.findByUserAndBundleAndLocation(user, bundle, savedLocation);
-        
-                existingUserBundle.ifPresentOrElse(
+    private void updateUserBundles(User user, Set<CreateUpdateUserDTO.UserBundleSubscriptionDTO> subscriptions) {
+        Set<Long> processedIds = new HashSet<>();
+
+        subscriptions.forEach(sub -> {
+            // Validate required fields
+            if (sub.getBundleId() == null) {
+                throw new ValidationException("Bundle ID is required");
+            }
+            if (sub.getLocation() == null) {
+                throw new ValidationException("Location is required for bundle subscription");
+            }
+
+            Bundle bundle = bundleRepository.findById(sub.getBundleId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with id: " + sub.getBundleId()));
+
+            // Handle location properly
+            LocationDTO locationDTO = sub.getLocation();
+            Location location = findExistingLocation(locationDTO)
+                    .orElseGet(() -> locationRepository.save(locationMapper.toLocation(locationDTO)));
+
+            Optional<UserBundle> existingUserBundle = userBundleRepository.findByUserAndBundleAndLocation(
+                    user, bundle, location
+            );
+
+            existingUserBundle.ifPresentOrElse(
                     ub -> {
-                        // Update existing bundle properties including status
-                        ub.setSubscriptionDate(subscription.getSubscriptionDate() != null 
-                            ? subscription.getSubscriptionDate() 
-                            : LocalDate.now());
-                        ub.setStatus(subscription.getStatus());
+                        // Update existing bundle
+                        ub.setSubscriptionDate(sub.getSubscriptionDate() != null ?
+                                sub.getSubscriptionDate() : LocalDate.now());
+                        ub.setStatus(sub.getStatus());
                         userBundleRepository.save(ub);
-                        processedUserBundleIds.add(ub.getId());
+                        processedIds.add(ub.getId());
                     },
                     () -> {
                         // Create new bundle
                         UserBundle newUb = new UserBundle();
                         newUb.setUser(user);
                         newUb.setBundle(bundle);
-                        newUb.setSubscriptionDate(subscription.getSubscriptionDate() != null 
-                            ? subscription.getSubscriptionDate() 
-                            : LocalDate.now());
-                        newUb.setStatus(subscription.getStatus());
-                        newUb.setLocation(savedLocation);
+                        newUb.setSubscriptionDate(sub.getSubscriptionDate() != null ?
+                                sub.getSubscriptionDate() : LocalDate.now());
+                        newUb.setStatus(sub.getStatus());
+                        newUb.setLocation(location);
+
                         UserBundle savedUb = userBundleRepository.save(newUb);
-                        processedUserBundleIds.add(savedUb.getId());
+                        processedIds.add(savedUb.getId());
+                        createPaymentForUserBundle(savedUb);
                     }
-                );
-            });
-        
-            user.getBundles().removeIf(ub -> !processedUserBundleIds.contains(ub.getId()));
-        } catch (Exception ex) {
-            if (ex instanceof ResourceNotFoundException || ex instanceof ValidationException) {
-                throw ex;
-            } else {
-                throw new OperationFailedException("Failed to update user bundles", ex);
-            }
-        }
+            );
+        });
+
+        // Soft-delete removed bundles
+        user.getBundles().stream()
+                .filter(ub -> !processedIds.contains(ub.getId()))
+                .forEach(ub -> {
+                    // Soft-delete the bundle
+                    ub.setDeleted(true);
+
+                    // Soft-delete all associated payments
+                    ub.getPayments().forEach(payment -> {
+                        payment.setDeleted(true);
+                    });
+                });
     }
 
     private Optional<Location> findExistingLocation(LocationDTO locationDTO) {
@@ -306,16 +298,14 @@ public class UserService {
         }
 
         try {
-            Location location = locationMapper.toLocation(locationDTO);
-            location.setLocationId(null);
+            Location exampleLocation = locationMapper.toLocation(locationDTO);
+            exampleLocation.setLocationId(null);  // Ignore ID for matching
 
             ExampleMatcher matcher = ExampleMatcher.matching()
-                    .withIncludeNullValues()
-                    .withIgnorePaths("locationId")
-                    .withStringMatcher(StringMatcher.EXACT);
+                    .withIgnorePaths("locationId", "googleMapsUrl")
+                    .withStringMatcher(StringMatcher.DEFAULT);
 
-            Example<Location> example = Example.of(location, matcher);
-            return locationRepository.findOne(example);
+            return locationRepository.findOne(Example.of(exampleLocation, matcher));
         } catch (Exception ex) {
             throw new OperationFailedException("Failed to find existing location", ex);
         }
@@ -323,16 +313,30 @@ public class UserService {
 
     @Transactional
     public void deleteUser(Long id) {
-        User user = userRepository.findById(id)
+        User user = userRepository.findByIdWithBundlesAndLocation(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
-        // Check for ACTIVE bundles only
-        if (user.getBundles().stream().anyMatch(ub -> !ub.isDeleted())) {
-            throw new InvalidOperationException("Cannot delete user with active bundles");
-        }
-
+        // Soft-delete cascade
         user.setDeleted(true);
+
+        user.getBundles().forEach(userBundle -> {
+            userBundle.setDeleted(true);
+            userBundle.getPayments().forEach(payment -> {
+                payment.setDeleted(true);
+            });
+        });
+
         userRepository.save(user);
+    }
+
+    private void createPaymentForUserBundle(UserBundle userBundle) {
+        CreatePaymentDTO paymentDTO = new CreatePaymentDTO();
+        paymentDTO.setAmount(userBundle.getBundle().getPrice());
+        paymentDTO.setDueDate(LocalDateTime.now().plusMonths(1));
+        paymentDTO.setPaymentMethod("Invoice");
+        paymentDTO.setUserBundleId(userBundle.getId());
+
+        paymentService.createPayment(paymentDTO);
     }
 
 }

@@ -28,7 +28,9 @@ import lombok.Setter;
 @Getter
 @Setter
 public class Payment extends BaseEntity {
-    
+
+
+
     public enum PaymentStatus {
         PAID, UNPAID, PENDING
     }
@@ -59,9 +61,11 @@ public class Payment extends BaseEntity {
     @Column(nullable = false)
     private PaymentStatus status = PaymentStatus.PENDING;
 
-    @NotNull(message = "User bundle is required")
+    @Column(nullable = false)
+    private boolean deleted = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_bundle_id", nullable = false)
+    @JoinColumn(name = "user_bundle_id")
     private UserBundle userBundle;
 
 

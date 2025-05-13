@@ -52,8 +52,8 @@ public class CreateUpdateUserDTO {
         
         @NotNull
         private UserBundle.BundleStatus status = UserBundle.BundleStatus.ACTIVE;
-        
-        @NotNull
+
+        @NotNull(message = "Location is required")
         private LocationDTO location;
 
 

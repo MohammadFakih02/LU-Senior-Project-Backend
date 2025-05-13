@@ -3,19 +3,10 @@ package com.example.internetprovidermanagement.models;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -62,8 +53,13 @@ public class UserBundle extends BaseEntity {
     @Column(precision = 10, scale = 2)
     private BigDecimal consumption = BigDecimal.ZERO;
 
+    @OneToMany(mappedBy = "userBundle", cascade = CascadeType.ALL)
+    private List<Payment> payments = new ArrayList<>();
     @Column(nullable = false)
     private boolean deleted = false;
+
+
+
 
 
 }

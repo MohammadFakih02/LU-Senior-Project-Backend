@@ -120,5 +120,21 @@ public class UserBundleService {
 
     }
 
+    @Transactional
+    public void softDeleteUserBundle(Long id) {
+        UserBundle userBundle = userBundleRepository.findByIdWithPayments(id)
+                .orElseThrow(() -> new ResourceNotFoundException("UserBundle not found"));
+
+        // Soft-delete the UserBundle
+        userBundle.setDeleted(true);
+
+        // Soft-delete all associated payments
+        userBundle.getPayments().forEach(payment -> {
+            payment.setDeleted(true);
+        });
+
+        userBundleRepository.save(userBundle);
+    }
+
 
 }

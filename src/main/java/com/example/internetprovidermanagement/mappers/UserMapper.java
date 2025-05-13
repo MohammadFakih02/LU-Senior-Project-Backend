@@ -1,5 +1,7 @@
 package com.example.internetprovidermanagement.mappers;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -18,10 +20,21 @@ import com.example.internetprovidermanagement.models.UserBundle;
 @Mapper(componentModel = "spring", uses = {LocationMapper.class, UserBundleMapper.class})
 public interface UserMapper {
 
-    @Mapping(target = "id", source = "id")
-    @Mapping(target = "status", source = "status")
-    @Mapping(target = "bundleNames", expression = "java(mapBundleNames(user.getBundles()))")
+    @Mapping(target = "bundleNames", source = "bundles", qualifiedByName = "mapBundleNames")
     UserResponseDTO toUserResponseDTO(User user);
+
+    @Named("mapBundleNames")
+    default Set<String> mapBundleNames(Set<UserBundle> bundles) {
+        if (bundles == null) return Collections.emptySet();
+
+        return bundles.stream()
+                .filter(ub -> !ub.isDeleted()) // Final safety check
+                .map(ub -> ub.getBundle().getName())
+                .collect(Collectors.toSet());
+    }
+
+
+    List<UserResponseDTO> toUserResponseDTOList(List<User> users);
 
     @Mapping(target = "userId", source = "id")
     @Mapping(target = "bundles", source = "bundles", qualifiedByName = "mapBundles")
@@ -50,10 +63,10 @@ public interface UserMapper {
 
     @Named("mapBundles")
     default Set<UserBundleDetailsDTO> mapBundles(Set<UserBundle> bundles) {
-        if (bundles == null) {
-            return null;
-        }
+        if (bundles == null) return null;
+
         return bundles.stream()
+                .filter(ub -> !ub.isDeleted()) // Final filter
                 .map(this::toUserBundleDetailsDTO)
                 .collect(Collectors.toSet());
     }
@@ -66,10 +79,5 @@ public interface UserMapper {
     @Mapping(target = "subscriptionDate", source = "subscriptionDate")
     UserBundleDetailsDTO toUserBundleDetailsDTO(UserBundle userBundle);
 
-    default Set<String> mapBundleNames(Set<UserBundle> bundles) {
-        if (bundles == null) return null;
-        return bundles.stream()
-                .map(ub -> ub.getBundle().getName())
-                .collect(Collectors.toSet());
-    }
+
 }
