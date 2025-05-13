@@ -56,4 +56,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "WHERE u.id = :id")
     Optional<User> findByIdWithBundlesAndPayments(@Param("id") Long id);
 
+    @Query("SELECT DISTINCT u FROM User u " +
+            "JOIN FETCH u.bundles ub " + // Only fetch users with active bundles
+            "WHERE u.deleted = false " +
+            "AND ub.deleted = false")
+    List<User> findAllActiveUsersWithActiveBundles();
+
 }
