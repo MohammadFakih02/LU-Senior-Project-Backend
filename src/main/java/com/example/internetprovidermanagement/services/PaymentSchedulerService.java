@@ -1,7 +1,11 @@
 package com.example.internetprovidermanagement.services;
 
 import com.example.internetprovidermanagement.dtos.CreatePaymentDTO;
+import com.example.internetprovidermanagement.models.Payment;
 import com.example.internetprovidermanagement.models.User;
+import com.example.internetprovidermanagement.models.UserBundle;
+import com.example.internetprovidermanagement.repositories.PaymentRepository;
+import com.example.internetprovidermanagement.repositories.UserBundleRepository;
 import com.example.internetprovidermanagement.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -16,9 +20,35 @@ import java.util.List;
 public class PaymentSchedulerService {
     private final UserRepository userRepository;
     private final PaymentService paymentService;
-
-    @Scheduled(cron = "0 55 18 * * *") // Runs daily at midnight
+    private final PaymentRepository paymentRepository;
+    private final UserBundleRepository userBundleRepository;
+    @Scheduled(cron = "*/30 * * * * *")
     @Transactional
+    public void dailyPaymentMaintenance() {
+        // 1. Process overdue payments
+        handleOverduePayments();
+
+        // 2. Generate new payments
+        generateRecurringPayments();
+    }
+
+
+    private void handleOverduePayments() {
+        // Get overdue payments without loading full entities
+        List<Long> overduePaymentIds = paymentRepository.findOverdueActivePaymentIds();
+
+        // Bulk update payment statuses
+        paymentRepository.bulkMarkAsUnpaid(overduePaymentIds);
+
+        // Bulk deactivate user bundles
+        userBundleRepository.bulkDeactivateBundlesForPayments(overduePaymentIds);
+    }
+
+        // 2. Then generate new payments
+
+
+     // Runs daily at midnight
+
     public void generateRecurringPayments() {
         List<User> activeUsers = userRepository.findAllActiveUsersWithActiveBundles();
         LocalDate today = LocalDate.now();

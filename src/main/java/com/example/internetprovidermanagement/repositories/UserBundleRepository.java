@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -48,4 +49,16 @@ public interface UserBundleRepository extends JpaRepository<UserBundle, Long> {
 
     @Query("SELECT ub FROM UserBundle ub LEFT JOIN FETCH ub.payments WHERE ub.id = :id")
     Optional<UserBundle> findByIdWithPayments(@Param("id") Long id);
+
+    @Query("SELECT ub FROM UserBundle ub LEFT JOIN FETCH ub.payments WHERE ub.bundle.bundleId = :bundleId")
+    List<UserBundle> findByBundleIdWithPayments(@Param("bundleId") Long bundleId);
+
+    @Modifying
+    @Query("UPDATE UserBundle ub SET ub.deleted = true WHERE ub.bundle.bundleId = :bundleId")
+    void softDeleteByBundleId(@Param("bundleId") Long bundleId);
+
+    @Modifying
+    @Query("UPDATE UserBundle ub SET ub.status = 'INACTIVE' " +
+            "WHERE ub.id IN (SELECT p.userBundle.id FROM Payment p WHERE p.id IN :paymentIds)")
+    void bulkDeactivateBundlesForPayments(@Param("paymentIds") List<Long> paymentIds);
 }

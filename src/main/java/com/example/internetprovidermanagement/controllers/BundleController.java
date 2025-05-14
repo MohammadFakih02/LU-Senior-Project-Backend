@@ -37,6 +37,11 @@ public class BundleController {
         return ResponseEntity.ok(bundleService.getAllBundles());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<BundleResponseDTO> getBundleById(@PathVariable Long id) {
+        return ResponseEntity.ok(bundleService.getBundleById(id));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<BundleResponseDTO> updateBundle(
             @PathVariable Long id, 

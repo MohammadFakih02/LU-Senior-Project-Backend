@@ -333,7 +333,7 @@ public class UserService {
         CreatePaymentDTO paymentDTO = new CreatePaymentDTO();
         paymentDTO.setAmount(userBundle.getBundle().getPrice());
         paymentDTO.setDueDate(LocalDateTime.now().plusMonths(1));
-        paymentDTO.setPaymentMethod("Invoice");
+        paymentDTO.setPaymentMethod("Cash");
         paymentDTO.setUserBundleId(userBundle.getId());
 
         paymentService.createPayment(paymentDTO);
