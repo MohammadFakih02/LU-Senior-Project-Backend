@@ -14,7 +14,7 @@ public class PaymentCleanupService {
     private final PaymentRepository paymentRepository;
     private final AppConfigService configService;
 
-    @Scheduled(cron = "*/10 * * * * *")
+    @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void cleanupOldPayments() {
         int retentionDays = configService.getRetentionDays();

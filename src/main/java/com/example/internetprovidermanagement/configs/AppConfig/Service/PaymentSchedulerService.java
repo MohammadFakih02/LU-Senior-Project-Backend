@@ -22,7 +22,7 @@ public class PaymentSchedulerService {
     private final PaymentRepository paymentRepository;
     private final UserBundleRepository userBundleRepository;
     private final AppConfigService configService;
-    @Scheduled(cron = "*/10 0 0 * * *")
+    @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void dailyPaymentMaintenance() {
         // 1. Process overdue payments
