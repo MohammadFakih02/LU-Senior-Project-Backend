@@ -21,4 +21,10 @@ public interface BundleRepository extends JpaRepository<Bundle, Long> {
 
     @Query("SELECT ub FROM UserBundle ub LEFT JOIN FETCH ub.payments WHERE ub.bundle.bundleId = :bundleId")
     List<UserBundle> findByBundleIdWithPayments(@Param("bundleId") Long bundleId);
+
+    @Query("SELECT COUNT(b) > 0 FROM Bundle b WHERE b.name = :name AND b.deleted = false")
+    boolean existsActiveByName(@Param("name") String name);
+
+    @Query("SELECT b FROM Bundle b WHERE b.deleted = false")
+    List<Bundle> findAllActive();
 }

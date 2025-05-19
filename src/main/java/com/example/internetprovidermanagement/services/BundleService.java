@@ -28,17 +28,15 @@ public class BundleService {
 
     @Transactional
     public BundleResponseDTO createBundle(BundleDTO bundleDTO) {
-        if (bundleRepository.existsByName(bundleDTO.getName())) {
-            throw new ConflictException("Bundle with name " + bundleDTO.getName() + " already exists");
-        }
-        
+        validateNameUniqueness(bundleDTO.getName());
+
         Bundle bundle = bundleMapper.toBundle(bundleDTO);
         return bundleMapper.toBundleResponseDTO(bundleRepository.save(bundle));
     }
 
     @Transactional(readOnly = true)
     public List<BundleResponseDTO> getAllBundles() {
-        return bundleRepository.findAllActiveBundles().stream()
+        return bundleRepository.findAllActive().stream()
                 .map(bundleMapper::toBundleResponseDTO)
                 .collect(Collectors.toList());
     }
@@ -58,10 +56,20 @@ public class BundleService {
     @Transactional
     public BundleResponseDTO updateBundle(Long id, BundleDTO bundleDTO) {
         Bundle bundle = bundleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with id: " + id));
-        
+                .orElseThrow(() -> new ResourceNotFoundException("Bundle not found"));
+
+        if (!bundle.getName().equals(bundleDTO.getName())) {
+            validateNameUniqueness(bundleDTO.getName());
+        }
+
         bundleMapper.updateBundleFromDto(bundleDTO, bundle);
         return bundleMapper.toBundleResponseDTO(bundleRepository.save(bundle));
+    }
+
+    private void validateNameUniqueness(String name) {
+        if (bundleRepository.existsActiveByName(name)) {
+            throw new ConflictException("Bundle name already exists");
+        }
     }
 
     @Transactional

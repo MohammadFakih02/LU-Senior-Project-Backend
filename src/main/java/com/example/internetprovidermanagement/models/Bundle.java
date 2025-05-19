@@ -2,12 +2,7 @@ package com.example.internetprovidermanagement.models;
 
 import java.math.BigDecimal;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -17,7 +12,12 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "Bundles")
+@Table(name = "bundles",
+        uniqueConstraints = @UniqueConstraint(
+                name = "idx_bundles_name_active",
+                columnNames = {"name", "deleted"}
+        )
+)
 @Getter
 @Setter
 public class Bundle extends BaseEntity {

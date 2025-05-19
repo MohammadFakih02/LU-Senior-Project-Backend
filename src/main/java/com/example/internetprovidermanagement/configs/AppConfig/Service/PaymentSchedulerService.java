@@ -1,12 +1,11 @@
-package com.example.internetprovidermanagement.services;
+package com.example.internetprovidermanagement.configs.AppConfig.Service;
 
 import com.example.internetprovidermanagement.dtos.CreatePaymentDTO;
-import com.example.internetprovidermanagement.models.Payment;
 import com.example.internetprovidermanagement.models.User;
-import com.example.internetprovidermanagement.models.UserBundle;
 import com.example.internetprovidermanagement.repositories.PaymentRepository;
 import com.example.internetprovidermanagement.repositories.UserBundleRepository;
 import com.example.internetprovidermanagement.repositories.UserRepository;
+import com.example.internetprovidermanagement.services.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -22,25 +21,25 @@ public class PaymentSchedulerService {
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepository;
     private final UserBundleRepository userBundleRepository;
-    @Scheduled(cron = "*/30 * * * * *")
+    private final AppConfigService configService;
+    @Scheduled(cron = "*/10 0 0 * * *")
     @Transactional
     public void dailyPaymentMaintenance() {
         // 1. Process overdue payments
         handleOverduePayments();
 
         // 2. Generate new payments
+        if (!configService.isRecurringPaymentsEnabled()) {
+            return;
+        }
         generateRecurringPayments();
     }
 
 
-    private void handleOverduePayments() {
-        // Get overdue payments without loading full entities
+    public void handleOverduePayments() {
         List<Long> overduePaymentIds = paymentRepository.findOverdueActivePaymentIds();
-
-        // Bulk update payment statuses
         paymentRepository.bulkMarkAsUnpaid(overduePaymentIds);
-
-        // Bulk deactivate user bundles
+        if (!configService.isDisableUnpaidUserbundlesEnabled()) return;
         userBundleRepository.bulkDeactivateBundlesForPayments(overduePaymentIds);
     }
 
