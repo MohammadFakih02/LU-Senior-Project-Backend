@@ -45,7 +45,7 @@ public class PaymentService {
         }
         Payment payment = paymentMapper.toPayment(paymentDTO);
         payment.setUserBundle(userBundle);
-        
+
         if (payment.getPaymentDate() == null && payment.getStatus() == Payment.PaymentStatus.PAID) {
             payment.setPaymentDate(LocalDateTime.now());
         }
@@ -56,9 +56,12 @@ public class PaymentService {
     @Transactional
     public PaymentResponseDTO updatePayment(Long id, UpdatePaymentDTO paymentDTO) {
         Payment payment = paymentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found with ID: " + id));
 
-        // Only update what's provided in DTO
+        if (payment.isDeleted()) {
+            throw new InvalidOperationException("Cannot update a deleted payment with ID: " + id);
+        }
+
         if (paymentDTO.getAmount() != null) {
             payment.setAmount(paymentDTO.getAmount());
         }
@@ -67,8 +70,7 @@ public class PaymentService {
         }
         if (paymentDTO.getStatus() != null) {
             payment.setStatus(paymentDTO.getStatus());
-            // Auto-set payment date only if status changes to PAID
-            if (paymentDTO.getStatus() == Payment.PaymentStatus.PAID) {
+            if (paymentDTO.getStatus() == Payment.PaymentStatus.PAID && payment.getPaymentDate() == null) { // Set payment date only if not already set
                 payment.setPaymentDate(LocalDateTime.now());
             }
         }
@@ -79,19 +81,37 @@ public class PaymentService {
     @Transactional
     public void processPayment(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found with ID: " + paymentId));
 
+        if (payment.isDeleted()) {
+            throw new InvalidOperationException("Cannot process a deleted payment with ID: " + paymentId);
+        }
         if (payment.getStatus() != Payment.PaymentStatus.PENDING) {
-            throw new PaymentProcessingException("Only pending payments can be processed");
+            throw new PaymentProcessingException("Only pending payments can be processed. Payment ID: " + paymentId + " has status: " + payment.getStatus());
         }
 
-        // Simulate payment processing
         try {
             payment.setStatus(Payment.PaymentStatus.PAID);
             payment.setPaymentDate(LocalDateTime.now());
             paymentRepository.save(payment);
         } catch (Exception e) {
-            throw new PaymentProcessingException("Payment processing failed: " + e.getMessage());
+            throw new PaymentProcessingException("Payment processing failed for ID " + paymentId + ": " + e.getMessage());
         }
+    }
+
+    @Transactional
+    public void softDeletePayment(Long id) {
+        Payment payment = paymentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found with ID: " + id));
+
+        if (payment.isDeleted()) {
+            // Optionally, you can throw an exception or just do nothing if it's already deleted.
+            // For idempotency, often doing nothing is fine.
+            // throw new InvalidOperationException("Payment with ID: " + id + " is already deleted.");
+            return;
+        }
+
+        payment.setDeleted(true);
+        paymentRepository.save(payment);
     }
 }
