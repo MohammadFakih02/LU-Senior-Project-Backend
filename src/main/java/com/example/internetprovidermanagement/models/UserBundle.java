@@ -48,10 +48,6 @@ public class UserBundle extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinColumn(name = "location_id", nullable = false)
     private Location location;
-    
-    @DecimalMin(value = "0.0", message = "Consumption cannot be negative")
-    @Column(precision = 10, scale = 2)
-    private BigDecimal consumption = BigDecimal.ZERO;
 
     @OneToMany(mappedBy = "userBundle", cascade = CascadeType.ALL)
     private List<Payment> payments = new ArrayList<>();

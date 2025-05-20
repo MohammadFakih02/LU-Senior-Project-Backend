@@ -1,11 +1,9 @@
 package com.example.internetprovidermanagement.dtos;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import com.example.internetprovidermanagement.models.UserBundle;
 
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -24,8 +22,6 @@ public class UserBundleDTO {
     
     private UserBundle.BundleStatus status = UserBundle.BundleStatus.ACTIVE;
     
-    @DecimalMin("0.0")
-    private BigDecimal consumption = BigDecimal.ZERO;
     
     @NotNull
     private LocationDTO location;

@@ -75,7 +75,6 @@ public interface UserMapper {
     @Mapping(target = "bundle", source = "bundle")
     @Mapping(target = "bundleLocation", source = "location")
     @Mapping(target = "status", source = "status")
-    @Mapping(target = "consumption", source = "consumption")
     @Mapping(target = "subscriptionDate", source = "subscriptionDate")
     UserBundleDetailsDTO toUserBundleDetailsDTO(UserBundle userBundle);
 

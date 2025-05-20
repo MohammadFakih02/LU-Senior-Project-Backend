@@ -1,16 +1,13 @@
 package com.example.internetprovidermanagement.services;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.example.internetprovidermanagement.dtos.CreatePaymentDTO;
-import com.example.internetprovidermanagement.repositories.PaymentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.internetprovidermanagement.dtos.CreatePaymentDTO;
 import com.example.internetprovidermanagement.dtos.UserBundleDTO;
 import com.example.internetprovidermanagement.dtos.UserBundleDetailsDTO;
 import com.example.internetprovidermanagement.exceptions.InvalidOperationException;
@@ -21,6 +18,7 @@ import com.example.internetprovidermanagement.mappers.UserBundleMapper;
 import com.example.internetprovidermanagement.models.Bundle;
 import com.example.internetprovidermanagement.models.UserBundle;
 import com.example.internetprovidermanagement.repositories.BundleRepository;
+import com.example.internetprovidermanagement.repositories.PaymentRepository;
 import com.example.internetprovidermanagement.repositories.UserBundleRepository;
 import com.example.internetprovidermanagement.repositories.UserRepository;
 
@@ -104,12 +102,6 @@ public class UserBundleService {
                 userBundle.setStatus(newStatus);
             }
 
-            if (userBundleDTO.getConsumption() != null) {
-                if (userBundleDTO.getConsumption().compareTo(BigDecimal.ZERO) < 0) {
-                    throw new ValidationException("Consumption cannot be negative");
-                }
-                userBundle.setConsumption(userBundleDTO.getConsumption());
-            }
 
             // Apply subscriptionDate from DTO if provided
             if (userBundleDTO.getSubscriptionDate() != null) {
