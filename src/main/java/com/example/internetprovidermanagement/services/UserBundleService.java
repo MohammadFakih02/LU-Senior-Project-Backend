@@ -1,9 +1,13 @@
 package com.example.internetprovidermanagement.services;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.example.internetprovidermanagement.dtos.CreatePaymentDTO;
+import com.example.internetprovidermanagement.repositories.PaymentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +34,8 @@ public class UserBundleService {
     private final UserRepository userRepository;
     private final BundleRepository bundleRepository;
     private final UserBundleMapper userBundleMapper;
+    private final PaymentService paymentService;
+    private final PaymentRepository paymentRepository;
 
     @Transactional(readOnly = true)
     @SuppressWarnings("UseSpecificCatch")
@@ -42,7 +48,7 @@ public class UserBundleService {
             if (!userRepository.existsById(userId)) {
                 throw new ResourceNotFoundException("User not found with id: " + userId);
             }
-            
+
             return userBundleRepository.findByUserIdWithBundle(userId).stream()
                     .map(userBundleMapper::toUserBundleDetailsDTO)
                     .collect(Collectors.toList());
@@ -72,42 +78,44 @@ public class UserBundleService {
                 throw new InvalidOperationException("Cannot update a deleted user bundle");
             }
 
-            // Validate bundle update
-            if (userBundleDTO.getBundleId() != null && 
-                !userBundle.getBundle().getBundleId().equals(userBundleDTO.getBundleId())) {
-                
+            if (userBundleDTO.getBundleId() != null &&
+                    !userBundle.getBundle().getBundleId().equals(userBundleDTO.getBundleId())) {
+
                 Bundle newBundle = bundleRepository.findById(userBundleDTO.getBundleId())
                         .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with id: " + userBundleDTO.getBundleId()));
-                
+
                 if (userBundle.getStatus() == UserBundle.BundleStatus.ACTIVE) {
-                    throw new InvalidOperationException("Cannot change bundle for an active subscription");
+                    throw new InvalidOperationException("Cannot change bundle for an active subscription via this method. Consider deactivating and creating a new one or a dedicated 'change bundle' feature.");
                 }
-                
+
                 userBundle.setBundle(newBundle);
             }
 
-            // Validate status update
             if (userBundleDTO.getStatus() != null) {
-                try {
-                    UserBundle.BundleStatus newStatus = UserBundle.BundleStatus.valueOf(userBundleDTO.getStatus().name());
-                    
-                    if (userBundle.getStatus() == UserBundle.BundleStatus.INACTIVE && newStatus == UserBundle.BundleStatus.ACTIVE) {
-                        throw new InvalidOperationException("Cannot reactivate an inactive bundle. Please create a new subscription.");
+                UserBundle.BundleStatus newStatus = userBundleDTO.getStatus();
+                if (userBundle.getStatus() == UserBundle.BundleStatus.INACTIVE && newStatus == UserBundle.BundleStatus.ACTIVE) {
+                    if (paymentRepository.existsUnpaidPaymentForUserBundle(userBundle.getId())) {
+                        throw new InvalidOperationException(
+                                "Cannot reactivate UserBundle (ID: " + userBundle.getId() +
+                                        ") because it has unpaid payments. Please resolve payments first."
+                        );
                     }
-                    
-                    userBundle.setStatus(newStatus);
-                } catch (IllegalArgumentException ex) {
-                    throw new ValidationException("Invalid bundle status: " + userBundleDTO.getStatus());
                 }
+                userBundle.setStatus(newStatus);
             }
 
-            // Validate consumption update
             if (userBundleDTO.getConsumption() != null) {
                 if (userBundleDTO.getConsumption().compareTo(BigDecimal.ZERO) < 0) {
                     throw new ValidationException("Consumption cannot be negative");
                 }
                 userBundle.setConsumption(userBundleDTO.getConsumption());
             }
+
+            // Apply subscriptionDate from DTO if provided
+            if (userBundleDTO.getSubscriptionDate() != null) {
+                userBundle.setSubscriptionDate(userBundleDTO.getSubscriptionDate());
+            }
+
 
             return userBundleMapper.toUserBundleDetailsDTO(userBundleRepository.save(userBundle));
         } catch (Exception ex) {
@@ -117,24 +125,70 @@ public class UserBundleService {
                 throw new OperationFailedException("Failed to update user bundle with id: " + id, ex);
             }
         }
-
     }
 
     @Transactional
     public void softDeleteUserBundle(Long id) {
         UserBundle userBundle = userBundleRepository.findByIdWithPayments(id)
-                .orElseThrow(() -> new ResourceNotFoundException("UserBundle not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("UserBundle not found with ID: " + id));
 
-        // Soft-delete the UserBundle
+        if (userBundle.isDeleted()) {
+            return;
+        }
+
         userBundle.setDeleted(true);
+        userBundle.setStatus(UserBundle.BundleStatus.INACTIVE);
 
-        // Soft-delete all associated payments
         userBundle.getPayments().forEach(payment -> {
-            payment.setDeleted(true);
+            if (!payment.isDeleted()) {
+                payment.setDeleted(true);
+            }
         });
 
         userBundleRepository.save(userBundle);
     }
 
 
+    @Transactional
+    public UserBundleDetailsDTO renewSubscription(Long userBundleId) {
+        UserBundle userBundle = userBundleRepository.findById(userBundleId)
+                .orElseThrow(() -> new ResourceNotFoundException("UserBundle not found with ID: " + userBundleId));
+
+        if (userBundle.isDeleted()) {
+            throw new InvalidOperationException("Cannot renew a deleted UserBundle (ID: " + userBundleId + ").");
+        }
+
+        if (userBundle.getUser().isDeleted()) {
+            throw new InvalidOperationException("Cannot renew UserBundle (ID: " + userBundleId + ") for a deleted user.");
+        }
+
+        UserBundle.BundleStatus oldStatus = userBundle.getStatus();
+
+        // *** CRITICAL LINES FOR DATE UPDATE ***
+        userBundle.setSubscriptionDate(LocalDate.now());
+        userBundle.setStatus(UserBundle.BundleStatus.ACTIVE);
+
+        if (oldStatus == UserBundle.BundleStatus.INACTIVE) {
+            if (paymentRepository.existsUnpaidPaymentForUserBundle(userBundle.getId())) {
+                throw new InvalidOperationException(
+                        "Cannot renew and activate UserBundle (ID: " + userBundleId +
+                                ") because it has outstanding unpaid payments. Please resolve them first."
+                );
+            }
+        }
+
+        // *** CRITICAL SAVE OPERATION ***
+        UserBundle savedUserBundle = userBundleRepository.save(userBundle);
+
+        // Create a new pending payment for the renewal
+        CreatePaymentDTO paymentDTO = new CreatePaymentDTO();
+        paymentDTO.setAmount(savedUserBundle.getBundle().getPrice());
+        paymentDTO.setDueDate(LocalDate.now().plusDays(30).atStartOfDay());
+        paymentDTO.setPaymentMethod("Subscription Renewal");
+        paymentDTO.setUserBundleId(savedUserBundle.getId());
+
+        paymentService.createPayment(paymentDTO);
+
+        return userBundleMapper.toUserBundleDetailsDTO(savedUserBundle);
+    }
 }

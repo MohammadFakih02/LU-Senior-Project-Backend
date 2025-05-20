@@ -31,5 +31,8 @@ public class UserBundleController {
         return ResponseEntity.ok(userBundleService.updateUserBundle(id, userBundleDTO));
     }
 
-
+    @PostMapping("/{id}/renew") // New Endpoint
+    public ResponseEntity<UserBundleDetailsDTO> renewUserBundleSubscription(@PathVariable Long id) {
+        return ResponseEntity.ok(userBundleService.renewSubscription(id));
+    }
 }
