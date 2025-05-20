@@ -18,10 +18,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Query("SELECT p FROM Payment p WHERE p.status = :status AND p.deleted = false")
     List<Payment> findByStatus(@Param("status") PaymentStatus status);
     List<Payment> findByDueDateBeforeAndStatus(LocalDateTime date, PaymentStatus status);
-    
+
     @Query("SELECT p FROM Payment p JOIN p.userBundle ub JOIN ub.user u WHERE u.id = :userId")
     List<Payment> findByUserId(Long userId);
-    
+
     @Query("SELECT p FROM Payment p JOIN FETCH p.userBundle WHERE p.id = :id")
     Optional<Payment> findByIdWithUserBundle(Long id);
 
@@ -57,4 +57,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Modifying
     @Query("UPDATE Payment p SET p.status = 'UNPAID' WHERE p.id IN :paymentIds")
     void bulkMarkAsUnpaid(@Param("paymentIds") List<Long> paymentIds);
+
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END " +
+            "FROM Payment p " +
+            "WHERE p.userBundle.id = :userBundleId " +
+            "AND p.status = com.example.internetprovidermanagement.models.Payment.PaymentStatus.UNPAID " +
+            "AND p.deleted = false")
+    boolean existsUnpaidPaymentForUserBundle(@Param("userBundleId") Long userBundleId);
 }

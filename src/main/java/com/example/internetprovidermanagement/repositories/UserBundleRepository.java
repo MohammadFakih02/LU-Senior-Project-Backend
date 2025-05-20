@@ -14,11 +14,9 @@ import com.example.internetprovidermanagement.models.Location;
 import com.example.internetprovidermanagement.models.User;
 import com.example.internetprovidermanagement.models.UserBundle;
 
-// UserBundleRepository.java
 @Repository
 public interface UserBundleRepository extends JpaRepository<UserBundle, Long> {
 
-    // Existing methods with soft-deletion check added
     @Query("SELECT ub FROM UserBundle ub WHERE ub.user = :user AND ub.deleted = false")
     List<UserBundle> findByUser(@Param("user") User user);
 
@@ -35,7 +33,6 @@ public interface UserBundleRepository extends JpaRepository<UserBundle, Long> {
                                              @Param("bundle") Bundle bundle,
                                              @Param("location") Location location);
 
-    // New method from previous conversation
     @Query("SELECT ub FROM UserBundle ub WHERE " +
             "ub.user = :user AND " +
             "ub.bundle = :bundle AND " +
@@ -61,4 +58,7 @@ public interface UserBundleRepository extends JpaRepository<UserBundle, Long> {
     @Query("UPDATE UserBundle ub SET ub.status = 'INACTIVE' " +
             "WHERE ub.id IN (SELECT p.userBundle.id FROM Payment p WHERE p.id IN :paymentIds)")
     void bulkDeactivateBundlesForPayments(@Param("paymentIds") List<Long> paymentIds);
+
+    @Query("SELECT ub FROM UserBundle ub WHERE ub.user = :user AND ub.bundle = :bundle AND ub.deleted = false")
+    List<UserBundle> findByUserAndBundleAndDeletedIsFalse(@Param("user") User user, @Param("bundle") Bundle bundle);
 }
