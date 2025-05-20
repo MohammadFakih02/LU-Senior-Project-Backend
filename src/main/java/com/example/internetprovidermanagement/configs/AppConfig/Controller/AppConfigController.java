@@ -1,4 +1,3 @@
-// AppConfigController.java
 package com.example.internetprovidermanagement.configs.AppConfig.Controller;
 
 
@@ -37,6 +36,7 @@ public class AppConfigController {
         return ResponseEntity.noContent().build();
     }
 
+    // Recurring Payments Endpoints
     @GetMapping("/recurring-payments")
     public ResponseEntity<Boolean> isRecurringPaymentsEnabled() {
         return ResponseEntity.ok(configService.isRecurringPaymentsEnabled());
@@ -47,6 +47,18 @@ public class AppConfigController {
             @PathVariable boolean enabled
     ) {
         configService.setRecurringPaymentsEnabled(enabled);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Auto Create Initial Payment Endpoints (New)
+    @GetMapping("/initial-payment/auto-create")
+    public ResponseEntity<Boolean> isAutoCreateInitialPaymentEnabled() {
+        return ResponseEntity.ok(configService.isAutoCreateInitialPaymentEnabled());
+    }
+
+    @PutMapping("/initial-payment/auto-create/{enabled}")
+    public ResponseEntity<Void> setAutoCreateInitialPaymentEnabled(@PathVariable boolean enabled) {
+        configService.setAutoCreateInitialPaymentEnabled(enabled);
         return ResponseEntity.noContent().build();
     }
 }

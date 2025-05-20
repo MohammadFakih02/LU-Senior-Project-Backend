@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.example.internetprovidermanagement.configs.AppConfig.Service.AppConfigService; // Import AppConfigService
 import com.example.internetprovidermanagement.dtos.*;
 import com.example.internetprovidermanagement.repositories.PaymentRepository;
 import org.springframework.data.domain.Example;
@@ -43,6 +44,12 @@ public class UserService {
     private final UserMapper userMapper;
     private final LocationMapper locationMapper;
     private final PaymentService paymentService;
+    private final AppConfigService appConfigService; // Inject AppConfigService
+
+    // ... other methods from previous UserService version ...
+    // (getAllUsers, getUserById, createUser, updateUser, getOrCreateUpdateLocation, findExistingLocationByAttributes)
+    // I'm omitting them for brevity here, but they remain unchanged from the last version we had.
+    // Make sure to merge this into your existing UserService.
 
     public List<UserResponseDTO> getAllUsers() {
         List<User> users = userRepository.findAllActiveUsers();
@@ -180,7 +187,7 @@ public class UserService {
             targetLocation = findExistingLocationByAttributes(desiredLocationData)
                     .map(existingLoc -> {
                         locationMapper.updateLocationFromDto(desiredLocationData, existingLoc);
-                        return existingLoc; // Return the updated existing location
+                        return existingLoc;
                     })
                     .orElseGet(() -> locationMapper.toLocation(desiredLocationData));
         }
@@ -202,7 +209,6 @@ public class UserService {
                 .withNullHandler(ExampleMatcher.NullHandler.IGNORE);
         return locationRepository.findOne(Example.of(exampleLocation, matcher));
     }
-
 
     private void addBundlesToUser(User user, Set<CreateUpdateUserDTO.UserBundleSubscriptionDTO> bundleSubscriptions) {
         if (bundleSubscriptions == null) {
@@ -246,7 +252,11 @@ public class UserService {
             userBundle.setLocation(bundleLocation);
 
             UserBundle savedUserBundle = userBundleRepository.save(userBundle);
-            createPaymentForUserBundle(savedUserBundle);
+
+            // Conditionally create initial payment
+            if (appConfigService.isAutoCreateInitialPaymentEnabled()) {
+                createPaymentForUserBundle(savedUserBundle);
+            }
 
             return savedUserBundle;
         } catch (Exception ex) {
@@ -259,9 +269,9 @@ public class UserService {
     }
 
     private void updateUserBundles(User user, Set<CreateUpdateUserDTO.UserBundleSubscriptionDTO> subscriptions) {
-        final Set<Long> processedUserBundleIds = new HashSet<>(); // Make this effectively final from the start
+        final Set<Long> processedUserBundleIds = new HashSet<>();
 
-        for (final CreateUpdateUserDTO.UserBundleSubscriptionDTO subDTO : subscriptions) { // subDTO is effectively final in each iteration
+        for (final CreateUpdateUserDTO.UserBundleSubscriptionDTO subDTO : subscriptions) {
             if (subDTO.getBundleId() == null) {
                 throw new ValidationException("Bundle ID is required for subscription.");
             }
@@ -278,8 +288,7 @@ public class UserService {
             List<UserBundle> existingUserBundlesForThisBundle = userBundleRepository.findByUserAndBundleAndDeletedIsFalse(user, bundle);
 
             if (subDTO.getLocation().getLocationId() != null) {
-                // DTO specifies a Location ID: attempt to use/update that specific Location record
-                final Location tempResolvedLoc = getOrCreateUpdateLocation(subDTO.getLocation(), null); // Existing loc by ID, or new if ID not found (error). Attributes updated.
+                final Location tempResolvedLoc = getOrCreateUpdateLocation(subDTO.getLocation(), null);
                 resolvedLocationForThisSub = tempResolvedLoc;
 
                 Optional<UserBundle> ubAtSpecificLocation = existingUserBundlesForThisBundle.stream()
@@ -289,19 +298,14 @@ public class UserService {
                     userBundleToProcess = ubAtSpecificLocation.get();
                 }
             } else {
-                // DTO does not specify a Location ID
                 if (existingUserBundlesForThisBundle.size() == 1) {
-                    // Only one existing bundle for this User+Bundle: this is a candidate for "move" or location attribute update
                     UserBundle candidate = existingUserBundlesForThisBundle.get(0);
-                    final Location tempResolvedLoc = getOrCreateUpdateLocation(subDTO.getLocation(), candidate.getLocation()); // Update attributes of candidate's location
+                    final Location tempResolvedLoc = getOrCreateUpdateLocation(subDTO.getLocation(), candidate.getLocation());
                     resolvedLocationForThisSub = tempResolvedLoc;
-                    userBundleToProcess = candidate; // This candidate will be processed (location potentially changed)
+                    userBundleToProcess = candidate;
                 } else {
-                    // No existing bundle for this User+Bundle, or multiple (ambiguous to "move")
-                    // A new UserBundle will likely be created. Resolve its location based on DTO attributes.
-                    final Location tempResolvedLoc = getOrCreateUpdateLocation(subDTO.getLocation(), null); // Find by attributes or create new
+                    final Location tempResolvedLoc = getOrCreateUpdateLocation(subDTO.getLocation(), null);
                     resolvedLocationForThisSub = tempResolvedLoc;
-                    // Check if a UB already exists at this newly resolved location (to avoid duplicates if attributes matched an existing one)
                     Optional<UserBundle> ubAtAttributeLocation = existingUserBundlesForThisBundle.stream()
                             .filter(ub -> ub.getLocation().getLocationId().equals(tempResolvedLoc.getLocationId()))
                             .findFirst();
@@ -311,12 +315,9 @@ public class UserService {
                 }
             }
 
-            // At this point, userBundleToProcess is either an existing UB or null.
-            // resolvedLocationForThisSub is the location this subDTO should be associated with.
 
             if (userBundleToProcess != null) {
-                // An existing UserBundle is being updated (potentially moved)
-                userBundleToProcess.setLocation(resolvedLocationForThisSub); // Critical: assign the resolved location
+                userBundleToProcess.setLocation(resolvedLocationForThisSub);
 
                 UserBundle.BundleStatus currentStatus = userBundleToProcess.getStatus();
                 UserBundle.BundleStatus newStatusFromDTO = subDTO.getStatus();
@@ -336,17 +337,13 @@ public class UserService {
                 userBundleRepository.save(userBundleToProcess);
                 processedUserBundleIds.add(userBundleToProcess.getId());
             } else {
-                // No existing UserBundle to update, so create a new one
-                // resolvedLocationForThisSub should be non-null here. If it's null, there's a logic flaw.
-                if (resolvedLocationForThisSub == null) { // Defensive check
+                if (resolvedLocationForThisSub == null) {
                     throw new OperationFailedException("Logical error: resolvedLocationForThisSub is null when creating new UserBundle.");
                 }
 
-                // Final check for exact duplicate before creating
                 Optional<UserBundle> duplicateCheck = userBundleRepository.findByUserAndBundleAndLocation(user, bundle, resolvedLocationForThisSub);
-                if (duplicateCheck.isPresent() && !processedUserBundleIds.contains(duplicateCheck.get().getId())) {
+                if(duplicateCheck.isPresent() && !processedUserBundleIds.contains(duplicateCheck.get().getId())){
                     UserBundle ub = duplicateCheck.get();
-                    // Location is already resolvedLocationForThisSub. Ensure attributes are up-to-date if DTO was different.
                     getOrCreateUpdateLocation(subDTO.getLocation(), ub.getLocation());
                     ub.setStatus(subDTO.getStatus());
                     ub.setSubscriptionDate(subDTO.getSubscriptionDate() != null ? subDTO.getSubscriptionDate() : LocalDate.now());
@@ -364,12 +361,15 @@ public class UserService {
 
                     UserBundle savedUb = userBundleRepository.save(newUb);
                     processedUserBundleIds.add(savedUb.getId());
-                    createPaymentForUserBundle(savedUb);
+                    // Conditionally create initial payment for newly created UserBundles within updateUserBundles
+                    if (appConfigService.isAutoCreateInitialPaymentEnabled()) {
+                        createPaymentForUserBundle(savedUb);
+                    }
                 }
             }
         }
 
-        final Set<Long> finalProcessedIds = processedUserBundleIds; // Effectively final for the lambda
+        final Set<Long> finalProcessedIds = processedUserBundleIds;
         user.getBundles().stream()
                 .filter(ub -> !finalProcessedIds.contains(ub.getId()) && !ub.isDeleted())
                 .forEach(ub -> {

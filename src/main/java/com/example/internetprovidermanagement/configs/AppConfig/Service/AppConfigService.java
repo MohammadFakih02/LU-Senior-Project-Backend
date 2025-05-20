@@ -1,4 +1,3 @@
-// AppConfigService.java
 package com.example.internetprovidermanagement.configs.AppConfig.Service;
 
 import com.example.internetprovidermanagement.configs.AppConfig.Model.AppConfig;
@@ -16,17 +15,18 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AppConfigService {
     private final AppConfigRepository configRepository;
-    
-    // Configuration keys
+
     private static final String RETENTION_DAYS_KEY = "payment.retention.days";
     private static final String OVERDUE_PROCESSING_KEY = "payment.overdue.enabled";
     private static final String RECURRING_PAYMENTS_KEY = "payment.recurring.enabled";
+    private static final String AUTO_CREATE_INITIAL_PAYMENT_KEY = "payment.initial.auto_create.enabled"; // New Key
 
     @PostConstruct
     void initDefaultConfig() {
         initKey(RETENTION_DAYS_KEY, "60");
         initKey(OVERDUE_PROCESSING_KEY, "true");
-        initKey(RECURRING_PAYMENTS_KEY, "true"); // Add this line
+        initKey(RECURRING_PAYMENTS_KEY, "true");
+        initKey(AUTO_CREATE_INITIAL_PAYMENT_KEY, "true"); // Initialize new key
     }
 
     private void initKey(String key, String defaultValue) {
@@ -38,7 +38,6 @@ public class AppConfigService {
         }
     }
 
-    // Retention days methods
     public int getRetentionDays() {
         return Integer.parseInt(getConfigValue(RETENTION_DAYS_KEY));
     }
@@ -49,7 +48,6 @@ public class AppConfigService {
         saveConfig(RETENTION_DAYS_KEY, String.valueOf(days));
     }
 
-    // Overdue processing methods
     public boolean isDisableUnpaidUserbundlesEnabled() {
         return Boolean.parseBoolean(getConfigValue(OVERDUE_PROCESSING_KEY));
     }
@@ -59,7 +57,26 @@ public class AppConfigService {
         saveConfig(OVERDUE_PROCESSING_KEY, String.valueOf(enabled));
     }
 
-    // Helper methods
+    public boolean isRecurringPaymentsEnabled() {
+        return Boolean.parseBoolean(getConfigValue(RECURRING_PAYMENTS_KEY));
+    }
+
+    @Transactional
+    public void setRecurringPaymentsEnabled(boolean enabled) {
+        saveConfig(RECURRING_PAYMENTS_KEY, String.valueOf(enabled));
+    }
+
+    // New methods for auto-creating initial payment
+    public boolean isAutoCreateInitialPaymentEnabled() {
+        return Boolean.parseBoolean(getConfigValue(AUTO_CREATE_INITIAL_PAYMENT_KEY));
+    }
+
+    @Transactional
+    public void setAutoCreateInitialPaymentEnabled(boolean enabled) {
+        saveConfig(AUTO_CREATE_INITIAL_PAYMENT_KEY, String.valueOf(enabled));
+    }
+    // End of new methods
+
     private String getConfigValue(String key) {
         return configRepository.findByConfigKey(key)
                 .map(AppConfig::getConfigValue)
@@ -81,16 +98,5 @@ public class AppConfigService {
         if (!List.of(0, 30, 60, 90).contains(days)) {
             throw new IllegalArgumentException("Invalid retention days. Allowed: 0, 30, 60, 90");
         }
-    }
-
-
-
-    public boolean isRecurringPaymentsEnabled() {
-        return Boolean.parseBoolean(getConfigValue(RECURRING_PAYMENTS_KEY));
-    }
-
-    @Transactional
-    public void setRecurringPaymentsEnabled(boolean enabled) {
-        saveConfig(RECURRING_PAYMENTS_KEY, String.valueOf(enabled));
     }
 }
