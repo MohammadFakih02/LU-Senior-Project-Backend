@@ -12,7 +12,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "bundles",
+@Table(name = "Bundles",
         uniqueConstraints = @UniqueConstraint(
                 name = "idx_bundles_name_active",
                 columnNames = {"name", "deleted"}

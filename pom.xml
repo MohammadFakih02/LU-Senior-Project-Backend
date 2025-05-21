@@ -88,6 +88,20 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>10.20.1</version> <!-- Use your Flyway core version -->
+                <configuration>
+                    <url>${spring.datasource.url}</url>
+                    <user>${spring.datasource.username}</user>
+                    <password>${spring.datasource.password}</password>
+                    <!-- Add any other necessary SSL parameters if not in the URL -->
+                    <schemas>
+                        <schema>defaultdb</schema> <!-- Or your target schema -->
+                    </schemas>
+                </configuration>
+            </plugin>
             
 <plugin>
     <groupId>org.apache.maven.plugins</groupId>
