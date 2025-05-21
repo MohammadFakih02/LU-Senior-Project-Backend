@@ -1,0 +1,23 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  app:
+    build: . # Tells Docker Compose to build the image from the Dockerfile in the current directory
+    image: internetprovidermanagement-app # Optional: names the built image
+    container_name: internet-provider-manager
+    ports:
+      - "8080:8080" # Map host port 8080 to container port 8080
+    environment:
+      # These will override any ENV set in the Dockerfile and provide the sensitive ones
+      # For Spring Boot application.properties
+      - DB_HOST=${DOCKER_DB_HOST:-lu-senior-project-database-mohammadfakih025-916d.l.aivencloud.com}
+      - DB_PORT=${DOCKER_DB_PORT:-12356}
+      - DB_NAME=${DOCKER_DB_NAME:-defaultdb}
+      - DB_USERNAME_ENV=${DOCKER_DB_USERNAME_ENV} # To be set in .env file or shell
+      - DB_PASSWORD_ENV=${DOCKER_DB_PASSWORD_ENV} # To be set in .env file or shell
+      - DB_KEYSTORE_PASSWORD_ENV=${DOCKER_DB_KEYSTORE_PASSWORD_ENV} # To be set in .env file or shell
+      # - SPRING_PROFILES_ACTIVE=docker # Example if you have a docker-specific profile
+    # To use an .env file (see below)
+    env_file:
+      - .env
