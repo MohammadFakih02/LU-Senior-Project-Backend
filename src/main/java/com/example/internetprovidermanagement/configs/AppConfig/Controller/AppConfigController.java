@@ -2,9 +2,12 @@ package com.example.internetprovidermanagement.configs.AppConfig.Controller;
 
 
 import com.example.internetprovidermanagement.configs.AppConfig.Service.AppConfigService;
+import com.example.internetprovidermanagement.dtos.ChangePasswordDTO; // Import the new DTO
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/config")
@@ -12,7 +15,8 @@ import org.springframework.web.bind.annotation.*;
 public class AppConfigController {
     private final AppConfigService configService;
 
-    // Retention Days Endpoints
+    // ... other endpoints remain the same ...
+
     @GetMapping("/retention-days")
     public ResponseEntity<Integer> getRetentionDays() {
         return ResponseEntity.ok(configService.getRetentionDays());
@@ -24,7 +28,6 @@ public class AppConfigController {
         return ResponseEntity.noContent().build();
     }
 
-    // Overdue Processing Endpoints
     @GetMapping("/overdue-processing")
     public ResponseEntity<Boolean> isDisableUnpaidUserbundlesEnabled() {
         return ResponseEntity.ok(configService.isDisableUnpaidUserbundlesEnabled());
@@ -36,7 +39,6 @@ public class AppConfigController {
         return ResponseEntity.noContent().build();
     }
 
-    // Recurring Payments Endpoints
     @GetMapping("/recurring-payments")
     public ResponseEntity<Boolean> isRecurringPaymentsEnabled() {
         return ResponseEntity.ok(configService.isRecurringPaymentsEnabled());
@@ -50,7 +52,6 @@ public class AppConfigController {
         return ResponseEntity.noContent().build();
     }
 
-    // Auto Create Initial Payment Endpoints (New)
     @GetMapping("/initial-payment/auto-create")
     public ResponseEntity<Boolean> isAutoCreateInitialPaymentEnabled() {
         return ResponseEntity.ok(configService.isAutoCreateInitialPaymentEnabled());
@@ -59,6 +60,34 @@ public class AppConfigController {
     @PutMapping("/initial-payment/auto-create/{enabled}")
     public ResponseEntity<Void> setAutoCreateInitialPaymentEnabled(@PathVariable boolean enabled) {
         configService.setAutoCreateInitialPaymentEnabled(enabled);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/security/username")
+    public ResponseEntity<String> getAdminUsername() {
+        return ResponseEntity.ok(configService.getAdminUsername());
+    }
+
+    @PutMapping("/security/username")
+    public ResponseEntity<Void> setAdminUsername(@RequestBody Map<String, String> payload) {
+        String username = payload.get("username");
+        if (username == null) {
+            return ResponseEntity.badRequest().build(); // Or throw ValidationException
+        }
+        configService.setAdminUsername(username);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/security/password")
+    public ResponseEntity<Void> changeAdminPassword(@RequestBody ChangePasswordDTO changePasswordDTO) {
+        // Basic DTO validation can be done here, or rely on service layer,
+        // or use @Valid if you add JSR 303 annotations to ChangePasswordDTO
+        if (changePasswordDTO == null ||
+                changePasswordDTO.getOldPassword() == null ||
+                changePasswordDTO.getNewPassword() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        configService.changeAdminPassword(changePasswordDTO);
         return ResponseEntity.noContent().build();
     }
 }
