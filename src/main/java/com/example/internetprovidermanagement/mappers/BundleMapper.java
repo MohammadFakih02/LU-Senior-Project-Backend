@@ -13,7 +13,7 @@ public interface BundleMapper {
 
     BundleDTO toBundleDTO(Bundle bundle);
 
-    BundleResponseDTO toBundleResponseDTO(Bundle bundle);
+    BundleResponseDTO toBundleResponseDTO(Bundle bundle); //1
 
     // Add to both methods:
      // Prevent DTOs from modifying deletion status
@@ -22,12 +22,12 @@ public interface BundleMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "deleted", ignore = true) // Add this
-    Bundle toBundle(BundleDTO bundleDTO);
+    Bundle toBundle(BundleDTO bundleDTO); //1
 
     // Updated update method:
     @Mapping(target = "bundleId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "deleted", ignore = true) // Add this
-    void updateBundleFromDto(BundleDTO bundleDTO, @MappingTarget Bundle bundle);
+    void updateBundleFromDto(BundleDTO bundleDTO, @MappingTarget Bundle bundle); //1
 }

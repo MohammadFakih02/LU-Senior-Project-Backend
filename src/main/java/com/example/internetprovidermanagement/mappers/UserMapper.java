@@ -34,12 +34,12 @@ public interface UserMapper {
     }
 
 
-    List<UserResponseDTO> toUserResponseDTOList(List<User> users);
+    List<UserResponseDTO> toUserResponseDTOList(List<User> users); //1
 
     @Mapping(target = "userId", source = "id")
     @Mapping(target = "bundles", source = "bundles", qualifiedByName = "mapBundles")
     @Mapping(target = "location", source = "location")
-    UserDetailsDTO toUserDetailsDTO(User user);
+    UserDetailsDTO toUserDetailsDTO(User user); //1
 
     // Add to creation/update methods:
      // Protect deletion status
@@ -50,7 +50,7 @@ public interface UserMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true) // Add this
-    User toUser(CreateUpdateUserDTO createUpdateUserDTO);
+    User toUser(CreateUpdateUserDTO createUpdateUserDTO); //1
 
     // Updated update method:
     @Mapping(target = "id", ignore = true)
@@ -59,7 +59,7 @@ public interface UserMapper {
     @Mapping(target = "location", ignore = true)
     @Mapping(target = "bundles", ignore = true)
     @Mapping(target = "deleted", ignore = true) // Add this
-    void updateUserFromDto(CreateUpdateUserDTO dto, @MappingTarget User user);
+    void updateUserFromDto(CreateUpdateUserDTO dto, @MappingTarget User user);//1
 
     @Named("mapBundles")
     default Set<UserBundleDetailsDTO> mapBundles(Set<UserBundle> bundles) {

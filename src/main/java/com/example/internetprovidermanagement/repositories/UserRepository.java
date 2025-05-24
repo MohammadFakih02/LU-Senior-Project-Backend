@@ -23,17 +23,17 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByStatus(User.UserStatus status);
 
     @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM User u WHERE u.email = :email AND u.deleted = false")
-    boolean existsByEmail(String email);
+    boolean existsByEmail(String email); //1
 
     @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM User u WHERE u.phone = :phone AND u.deleted = false")
-    boolean existsByPhone(String phone);
+    boolean existsByPhone(String phone); //1
 
     @Query("SELECT DISTINCT u FROM User u " +
             "LEFT JOIN FETCH u.bundles ub " + // Fetches all bundles (including deleted)
             "LEFT JOIN FETCH u.location l " +
             "WHERE u.id = :id " +
             "AND u.deleted = false") // Only check user deletion status
-    Optional<User> findByIdWithBundlesAndLocation(@Param("id") Long id);
+    Optional<User> findByIdWithBundlesAndLocation(@Param("id") Long id); //1
 
     @Query("SELECT u FROM User u JOIN FETCH u.location WHERE u.id = :id AND u.deleted = false")
     Optional<User> findByIdWithLocation(Long id);
@@ -46,15 +46,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "AND (ub.deleted = false OR ub IS NULL)")
     Optional<User> findByIdWithActiveBundlesAndLocation(@Param("id") Long id);
     @Query("SELECT DISTINCT u FROM User u " +
-            "LEFT JOIN FETCH u.bundles ub " + // Fetches all bundles (including deleted)
-            "WHERE u.deleted = false") // Only filters deleted users
-    List<User> findAllActiveUsers();
+            "LEFT JOIN FETCH u.bundles ub " +
+            "WHERE u.deleted = false")
+    List<User> findAllActiveUsers(); //1
 
     @Query("SELECT DISTINCT u FROM User u " +
             "LEFT JOIN FETCH u.bundles ub " +
             "LEFT JOIN FETCH ub.payments p " +
             "WHERE u.id = :id")
-    Optional<User> findByIdWithBundlesAndPayments(@Param("id") Long id);
+    Optional<User> findByIdWithBundlesAndPayments(@Param("id") Long id);//1
 
     @Query("SELECT DISTINCT u FROM User u " +
             "JOIN FETCH u.bundles ub " + // Only fetch users with active bundles

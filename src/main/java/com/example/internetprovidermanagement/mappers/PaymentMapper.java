@@ -20,13 +20,13 @@ public interface PaymentMapper {
     @Mapping(target = "userName", expression = "java(payment.getUserBundle().getUser().getFirstName() + \" \" + payment.getUserBundle().getUser().getLastName())")
     @Mapping(target = "bundleId", source = "userBundle.bundle.bundleId")
     @Mapping(target = "bundleName", source = "userBundle.bundle.name")
-    PaymentResponseDTO toPaymentResponseDTO(Payment payment);
+    PaymentResponseDTO toPaymentResponseDTO(Payment payment); //1
 
     @Mapping(target = "userBundle", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "id", ignore = true)
-    Payment toPayment(CreatePaymentDTO createPaymentDTO);
+    Payment toPayment(CreatePaymentDTO createPaymentDTO); //1
 
     @Mapping(target = "userBundle", ignore = true)
     @Mapping(target = "createdAt", ignore = true)

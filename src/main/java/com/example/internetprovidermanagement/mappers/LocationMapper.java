@@ -20,5 +20,5 @@ public interface LocationMapper {
     @Mapping(target = "locationId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    void updateLocationFromDto(LocationDTO locationDTO, @MappingTarget Location location);
+    void updateLocationFromDto(LocationDTO locationDTO, @MappingTarget Location location); //1
 }

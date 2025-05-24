@@ -24,14 +24,14 @@ public interface UserBundleRepository extends JpaRepository<UserBundle, Long> {
     List<UserBundle> findByBundleBundleId(@Param("bundleId") Long bundleId);
 
     @Query("SELECT ub FROM UserBundle ub JOIN FETCH ub.bundle WHERE ub.user.id = :userId AND ub.deleted = false")
-    List<UserBundle> findByUserIdWithBundle(@Param("userId") Long userId);
+    List<UserBundle> findByUserIdWithBundle(@Param("userId") Long userId); //1
 
     @Query("SELECT CASE WHEN COUNT(ub) > 0 THEN true ELSE false END " +
             "FROM UserBundle ub WHERE ub.user = :user AND ub.bundle = :bundle " +
             "AND ub.location = :location AND ub.deleted = false")
     boolean existsByUserAndBundleAndLocation(@Param("user") User user,
                                              @Param("bundle") Bundle bundle,
-                                             @Param("location") Location location);
+                                             @Param("location") Location location); //1
 
     @Query("SELECT ub FROM UserBundle ub WHERE " +
             "ub.user = :user AND " +
@@ -42,7 +42,7 @@ public interface UserBundleRepository extends JpaRepository<UserBundle, Long> {
             @Param("user") User user,
             @Param("bundle") Bundle bundle,
             @Param("location") Location location
-    );
+    ); //1
 
     @Query("SELECT ub FROM UserBundle ub LEFT JOIN FETCH ub.payments WHERE ub.id = :id")
     Optional<UserBundle> findByIdWithPayments(@Param("id") Long id);
@@ -52,7 +52,7 @@ public interface UserBundleRepository extends JpaRepository<UserBundle, Long> {
 
     @Modifying
     @Query("UPDATE UserBundle ub SET ub.deleted = true WHERE ub.bundle.bundleId = :bundleId")
-    void softDeleteByBundleId(@Param("bundleId") Long bundleId);
+    void softDeleteByBundleId(@Param("bundleId") Long bundleId); //1
 
     @Modifying
     @Query("UPDATE UserBundle ub SET ub.status = 'INACTIVE' " +
@@ -60,5 +60,5 @@ public interface UserBundleRepository extends JpaRepository<UserBundle, Long> {
     void bulkDeactivateBundlesForPayments(@Param("paymentIds") List<Long> paymentIds);
 
     @Query("SELECT ub FROM UserBundle ub WHERE ub.user = :user AND ub.bundle = :bundle AND ub.deleted = false")
-    List<UserBundle> findByUserAndBundleAndDeletedIsFalse(@Param("user") User user, @Param("bundle") Bundle bundle);
+    List<UserBundle> findByUserAndBundleAndDeletedIsFalse(@Param("user") User user, @Param("bundle") Bundle bundle);//1
 }

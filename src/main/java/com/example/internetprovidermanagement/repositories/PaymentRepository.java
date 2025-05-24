@@ -26,7 +26,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<Payment> findByIdWithUserBundle(Long id);
 
     @Query("SELECT p FROM Payment p WHERE p.deleted = false")
-    List<Payment> findAll();
+    List<Payment> findAllPayments(); //1
 
     @Query("SELECT p FROM Payment p " +
             "WHERE p.status = 'PAID' " +
@@ -36,7 +36,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     @Modifying
     @Query("UPDATE Payment p SET p.deleted = true WHERE p.userBundle IN (SELECT ub FROM UserBundle ub WHERE ub.bundle.bundleId = :bundleId)")
-    void softDeleteByBundleId(@Param("bundleId") Long bundleId);
+    void softDeleteByBundleId(@Param("bundleId") Long bundleId); //1
 
     @Query("SELECT p FROM Payment p " +
             "WHERE p.status NOT IN ('PAID') " +
@@ -63,5 +63,5 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             "WHERE p.userBundle.id = :userBundleId " +
             "AND p.status = com.example.internetprovidermanagement.models.Payment.PaymentStatus.UNPAID " +
             "AND p.deleted = false")
-    boolean existsUnpaidPaymentForUserBundle(@Param("userBundleId") Long userBundleId);
+    boolean existsUnpaidPaymentForUserBundle(@Param("userBundleId") Long userBundleId); //1
 }

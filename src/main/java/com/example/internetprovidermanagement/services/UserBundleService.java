@@ -57,7 +57,7 @@ public class UserBundleService {
                 throw new OperationFailedException("Failed to retrieve bundles for user with id: " + userId, ex);
             }
         }
-    }
+    } //1
 
     @Transactional
     @SuppressWarnings("UseSpecificCatch")
@@ -182,5 +182,5 @@ public class UserBundleService {
         paymentService.createPayment(paymentDTO);
 
         return userBundleMapper.toUserBundleDetailsDTO(savedUserBundle);
-    }
+    } //1
 }

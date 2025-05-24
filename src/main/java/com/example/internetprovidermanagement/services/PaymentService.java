@@ -31,7 +31,7 @@ public class PaymentService {
 
     @Transactional(readOnly = true)
     public List<PaymentResponseDTO> getAllPayments() {
-        return paymentRepository.findAll().stream()
+        return paymentRepository.findAllPayments().stream()
                 .map(paymentMapper::toPaymentResponseDTO)
                 .collect(Collectors.toList());
     }
@@ -43,10 +43,24 @@ public class PaymentService {
         if (userBundle.isDeleted()) {
             throw new InvalidOperationException("Cannot create payment for deleted user bundle");
         }
+
         Payment payment = paymentMapper.toPayment(paymentDTO);
         payment.setUserBundle(userBundle);
 
-        if (payment.getPaymentDate() == null && payment.getStatus() == Payment.PaymentStatus.PAID) {
+        Payment.PaymentStatus currentStatus = payment.getStatus();
+        String paymentMethodFromDTO = payment.getPaymentMethod();
+
+        final String AUTO_GENERATED_METHOD = "Auto-Generated on Subscription";
+
+        if (currentStatus == Payment.PaymentStatus.PENDING || currentStatus == Payment.PaymentStatus.UNPAID) {
+            payment.setPaymentMethod(AUTO_GENERATED_METHOD);
+        } else if (currentStatus == Payment.PaymentStatus.PAID) {
+            if (paymentMethodFromDTO == null || paymentMethodFromDTO.trim().isEmpty()) {
+                payment.setPaymentMethod(AUTO_GENERATED_METHOD);
+            }
+        }
+
+        if (payment.getPaymentDate() == null && currentStatus == Payment.PaymentStatus.PAID) {
             payment.setPaymentDate(LocalDateTime.now());
         }
 
@@ -70,7 +84,7 @@ public class PaymentService {
         }
         if (paymentDTO.getStatus() != null) {
             payment.setStatus(paymentDTO.getStatus());
-            if (paymentDTO.getStatus() == Payment.PaymentStatus.PAID && payment.getPaymentDate() == null) { // Set payment date only if not already set
+            if (paymentDTO.getStatus() == Payment.PaymentStatus.PAID && payment.getPaymentDate() == null) {
                 payment.setPaymentDate(LocalDateTime.now());
             }
         }
@@ -105,9 +119,6 @@ public class PaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found with ID: " + id));
 
         if (payment.isDeleted()) {
-            // Optionally, you can throw an exception or just do nothing if it's already deleted.
-            // For idempotency, often doing nothing is fine.
-            // throw new InvalidOperationException("Payment with ID: " + id + " is already deleted.");
             return;
         }
 

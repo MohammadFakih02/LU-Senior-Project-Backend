@@ -63,7 +63,7 @@ public class UserService {
         );
 
         return userMapper.toUserResponseDTOList(users);
-    }
+    } //1
 
     @Transactional(readOnly = true)
     public UserDetailsDTO getUserById(Long id) {
@@ -76,7 +76,7 @@ public class UserService {
         user.setBundles(activeBundles);
 
         return userMapper.toUserDetailsDTO(user);
-    }
+    } //1
 
     @Transactional
     @SuppressWarnings("UseSpecificCatch")
@@ -117,7 +117,7 @@ public class UserService {
                 throw new OperationFailedException("Failed to create user", ex);
             }
         }
-    }
+    } //1
 
     @Transactional
     @SuppressWarnings("UseSpecificCatch")
@@ -166,7 +166,7 @@ public class UserService {
                 throw new OperationFailedException("Failed to update user with id: " + id, ex);
             }
         }
-    }
+    }//1
 
 
     private Location getOrCreateUpdateLocation(LocationDTO desiredLocationData, Location currentEntityLocationIfAny) {
@@ -192,7 +192,7 @@ public class UserService {
                     .orElseGet(() -> locationMapper.toLocation(desiredLocationData));
         }
         return locationRepository.save(targetLocation);
-    }
+    } //1
 
     private Optional<Location> findExistingLocationByAttributes(LocationDTO locationDTO) {
         if (locationDTO == null) {
@@ -208,7 +208,7 @@ public class UserService {
                 .withStringMatcher(StringMatcher.DEFAULT)
                 .withNullHandler(ExampleMatcher.NullHandler.IGNORE);
         return locationRepository.findOne(Example.of(exampleLocation, matcher));
-    }
+    }//1
 
     private void addBundlesToUser(User user, Set<CreateUpdateUserDTO.UserBundleSubscriptionDTO> bundleSubscriptions) {
         if (bundleSubscriptions == null) {
@@ -219,7 +219,7 @@ public class UserService {
         } catch (Exception ex) {
             throw new OperationFailedException("Failed to add bundles to user", ex);
         }
-    }
+    } //1
 
     @SuppressWarnings("UseSpecificCatch")
     private UserBundle addBundleToUser(User user, CreateUpdateUserDTO.UserBundleSubscriptionDTO subscription) {
@@ -266,7 +266,7 @@ public class UserService {
                 throw new OperationFailedException("Failed to add bundle to user", ex);
             }
         }
-    }
+    }//1
 
     private void updateUserBundles(User user, Set<CreateUpdateUserDTO.UserBundleSubscriptionDTO> subscriptions) {
         final Set<Long> processedUserBundleIds = new HashSet<>();
@@ -298,13 +298,14 @@ public class UserService {
                     userBundleToProcess = ubAtSpecificLocation.get();
                 }
             } else {
+                final Location tempResolvedLoc;
                 if (existingUserBundlesForThisBundle.size() == 1) {
                     UserBundle candidate = existingUserBundlesForThisBundle.get(0);
-                    final Location tempResolvedLoc = getOrCreateUpdateLocation(subDTO.getLocation(), candidate.getLocation());
+                    tempResolvedLoc = getOrCreateUpdateLocation(subDTO.getLocation(), candidate.getLocation());
                     resolvedLocationForThisSub = tempResolvedLoc;
                     userBundleToProcess = candidate;
                 } else {
-                    final Location tempResolvedLoc = getOrCreateUpdateLocation(subDTO.getLocation(), null);
+                    tempResolvedLoc = getOrCreateUpdateLocation(subDTO.getLocation(), null);
                     resolvedLocationForThisSub = tempResolvedLoc;
                     Optional<UserBundle> ubAtAttributeLocation = existingUserBundlesForThisBundle.stream()
                             .filter(ub -> ub.getLocation().getLocationId().equals(tempResolvedLoc.getLocationId()))
@@ -361,7 +362,6 @@ public class UserService {
 
                     UserBundle savedUb = userBundleRepository.save(newUb);
                     processedUserBundleIds.add(savedUb.getId());
-                    // Conditionally create initial payment for newly created UserBundles within updateUserBundles
                     if (appConfigService.isAutoCreateInitialPaymentEnabled()) {
                         createPaymentForUserBundle(savedUb);
                     }
@@ -380,7 +380,7 @@ public class UserService {
                     });
                     userBundleRepository.save(ub);
                 });
-    }
+    }//1
 
 
     @Transactional
@@ -400,7 +400,7 @@ public class UserService {
         });
 
         userRepository.save(user);
-    }
+    }//1
 
     private void createPaymentForUserBundle(UserBundle userBundle) {
         CreatePaymentDTO paymentDTO = new CreatePaymentDTO();
@@ -410,5 +410,5 @@ public class UserService {
         paymentDTO.setUserBundleId(userBundle.getId());
 
         paymentService.createPayment(paymentDTO);
-    }
+    }//1
 }

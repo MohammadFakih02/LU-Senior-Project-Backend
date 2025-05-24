@@ -51,8 +51,7 @@ public class Payment extends BaseEntity {
     @FutureOrPresent(message = "Due date must be in the present or future")
     @Column(name = "due_date", nullable = false)
     private LocalDateTime dueDate;
-    
-    @NotBlank(message = "Payment method is required")
+
     @Size(max = 50, message = "Payment method must be less than 50 characters")
     @Column(name = "payment_method")
     private String paymentMethod;

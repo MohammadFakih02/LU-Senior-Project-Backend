@@ -14,9 +14,10 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AppConfigService {
+    private static final String string = "payment.retention.days";
     private final AppConfigRepository configRepository;
 
-    private static final String RETENTION_DAYS_KEY = "payment.retention.days";
+    private static final String RETENTION_DAYS_KEY = string;
     private static final String OVERDUE_PROCESSING_KEY = "payment.overdue.enabled";
     private static final String RECURRING_PAYMENTS_KEY = "payment.recurring.enabled";
     private static final String AUTO_CREATE_INITIAL_PAYMENT_KEY = "payment.initial.auto_create.enabled"; // New Key
@@ -40,48 +41,48 @@ public class AppConfigService {
 
     public int getRetentionDays() {
         return Integer.parseInt(getConfigValue(RETENTION_DAYS_KEY));
-    }
+    } //1
 
     @Transactional
     public void setRetentionDays(int days) {
         validateDays(days);
         saveConfig(RETENTION_DAYS_KEY, String.valueOf(days));
-    }
+    } //1
 
     public boolean isDisableUnpaidUserbundlesEnabled() {
         return Boolean.parseBoolean(getConfigValue(OVERDUE_PROCESSING_KEY));
-    }
+    } //1
 
     @Transactional
     public void setDisableUnpaidUserbundlesEnabled(boolean enabled) {
         saveConfig(OVERDUE_PROCESSING_KEY, String.valueOf(enabled));
-    }
+    }//1
 
     public boolean isRecurringPaymentsEnabled() {
         return Boolean.parseBoolean(getConfigValue(RECURRING_PAYMENTS_KEY));
-    }
+    }//1
 
     @Transactional
     public void setRecurringPaymentsEnabled(boolean enabled) {
         saveConfig(RECURRING_PAYMENTS_KEY, String.valueOf(enabled));
-    }
+    }//1
 
     // New methods for auto-creating initial payment
     public boolean isAutoCreateInitialPaymentEnabled() {
         return Boolean.parseBoolean(getConfigValue(AUTO_CREATE_INITIAL_PAYMENT_KEY));
-    }
+    }//1
 
     @Transactional
     public void setAutoCreateInitialPaymentEnabled(boolean enabled) {
         saveConfig(AUTO_CREATE_INITIAL_PAYMENT_KEY, String.valueOf(enabled));
-    }
+    }//1
     // End of new methods
 
     private String getConfigValue(String key) {
         return configRepository.findByConfigKey(key)
                 .map(AppConfig::getConfigValue)
                 .orElseThrow(() -> new ResourceNotFoundException("Config not found: " + key));
-    }
+    }//1
 
     private void saveConfig(String key, String value) {
         AppConfig config = configRepository.findByConfigKey(key)
@@ -92,11 +93,11 @@ public class AppConfigService {
                 });
         config.setConfigValue(value);
         configRepository.save(config);
-    }
+    } //1
 
     private void validateDays(int days) {
         if (!List.of(0, 30, 60, 90).contains(days)) {
             throw new IllegalArgumentException("Invalid retention days. Allowed: 0, 30, 60, 90");
         }
-    }
+    } //1
 }

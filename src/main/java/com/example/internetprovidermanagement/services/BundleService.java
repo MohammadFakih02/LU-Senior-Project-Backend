@@ -32,14 +32,14 @@ public class BundleService {
 
         Bundle bundle = bundleMapper.toBundle(bundleDTO);
         return bundleMapper.toBundleResponseDTO(bundleRepository.save(bundle));
-    }
+    } //1
 
     @Transactional(readOnly = true)
     public List<BundleResponseDTO> getAllBundles() {
         return bundleRepository.findAllActive().stream()
                 .map(bundleMapper::toBundleResponseDTO)
                 .collect(Collectors.toList());
-    }
+    }//1
 
     @Transactional(readOnly = true)
     public BundleResponseDTO getBundleById(Long id) {
@@ -51,7 +51,7 @@ public class BundleService {
         }
 
         return bundleMapper.toBundleResponseDTO(bundle);
-    }
+    }//1
 
     @Transactional
     public BundleResponseDTO updateBundle(Long id, BundleDTO bundleDTO) {
@@ -64,13 +64,13 @@ public class BundleService {
 
         bundleMapper.updateBundleFromDto(bundleDTO, bundle);
         return bundleMapper.toBundleResponseDTO(bundleRepository.save(bundle));
-    }
+    }//1
 
     private void validateNameUniqueness(String name) {
         if (bundleRepository.existsActiveByName(name)) {
             throw new ConflictException("Bundle name already exists");
         }
-    }
+    } //1
 
     @Transactional
     public void deleteBundle(Long id) {
@@ -85,6 +85,6 @@ public class BundleService {
 
         // 3. Soft-delete all related payments
         paymentRepository.softDeleteByBundleId(id);
-    }
+    } //1
 
 }

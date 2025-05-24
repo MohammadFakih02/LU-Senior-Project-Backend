@@ -24,8 +24,7 @@ public class CreatePaymentDTO {
     @NotNull
     @FutureOrPresent
     private LocalDateTime dueDate;
-    
-    @NotBlank
+
     @Size(max = 50)
     private String paymentMethod;
     
