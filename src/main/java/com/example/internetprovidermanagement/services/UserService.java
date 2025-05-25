@@ -5,12 +5,9 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import com.example.internetprovidermanagement.configs.AppConfig.Service.AppConfigService; // Import AppConfigService
+import com.example.internetprovidermanagement.configs.AppConfig.Service.AppConfigService;
 import com.example.internetprovidermanagement.dtos.*;
 import com.example.internetprovidermanagement.repositories.PaymentRepository;
-import org.springframework.data.domain.Example;
-import org.springframework.data.domain.ExampleMatcher;
-import org.springframework.data.domain.ExampleMatcher.StringMatcher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,7 +45,6 @@ public class UserService {
 
     public List<UserResponseDTO> getAllUsers() {
         List<User> users = userRepository.findAllActiveUsers();
-
         users.forEach(user ->
                 user.setBundles(
                         user.getBundles().stream()
@@ -56,22 +52,19 @@ public class UserService {
                                 .collect(Collectors.toSet())
                 )
         );
-
         return userMapper.toUserResponseDTOList(users);
-    } //1
+    }
 
     @Transactional(readOnly = true)
     public UserDetailsDTO getUserById(Long id) {
         User user = userRepository.findByIdWithBundlesAndLocation(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
         Set<UserBundle> activeBundles = user.getBundles().stream()
                 .filter(ub -> !ub.isDeleted())
                 .collect(Collectors.toSet());
         user.setBundles(activeBundles);
-
         return userMapper.toUserDetailsDTO(user);
-    } //1
+    }
 
     @Transactional
     @SuppressWarnings("UseSpecificCatch")
@@ -79,7 +72,6 @@ public class UserService {
         if (userDTO == null) {
             throw new ValidationException("User data cannot be null");
         }
-
         try {
             if (userRepository.existsByEmail(userDTO.getEmail())) {
                 throw new ConflictException("Email '" + userDTO.getEmail() + "' is already in use");
@@ -87,23 +79,18 @@ public class UserService {
             if (userRepository.existsByPhone(userDTO.getPhone())) {
                 throw new ConflictException("Phone number '" + userDTO.getPhone() + "' is already in use");
             }
-
             User user = userMapper.toUser(userDTO);
             if (userDTO.getLocation() == null) {
                 throw new ValidationException("User location is required");
             }
             Location userLocation = getOrCreateUpdateLocation(userDTO.getLocation(), null);
             user.setLocation(userLocation);
-
             User savedUser = userRepository.save(user);
-
             if (userDTO.getBundleSubscriptions() != null && !userDTO.getBundleSubscriptions().isEmpty()) {
                 addBundlesToUser(savedUser, userDTO.getBundleSubscriptions());
             }
-
             User userWithBundles = userRepository.findById(savedUser.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + savedUser.getId()));
-
             return userMapper.toUserDetailsDTO(userWithBundles);
         } catch (Exception ex) {
             if (ex instanceof ResourceNotFoundException || ex instanceof ConflictException || ex instanceof ValidationException) {
@@ -112,7 +99,7 @@ public class UserService {
                 throw new OperationFailedException("Failed to create user", ex);
             }
         }
-    } //1
+    }
 
     @Transactional
     @SuppressWarnings("UseSpecificCatch")
@@ -123,11 +110,9 @@ public class UserService {
         if (userDTO == null) {
             throw new ValidationException("User data cannot be null");
         }
-
         try {
             User user = userRepository.findByIdWithBundlesAndPayments(id)
                     .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
             if (userDTO.getEmail() != null && !userDTO.getEmail().equals(user.getEmail())) {
                 if (userRepository.existsByEmail(userDTO.getEmail())) {
                     throw new ConflictException("Email '" + userDTO.getEmail() + "' is already in use");
@@ -138,18 +123,14 @@ public class UserService {
                     throw new ConflictException("Phone number '" + userDTO.getPhone() + "' is already in use");
                 }
             }
-
             userMapper.updateUserFromDto(userDTO, user);
-
             if (userDTO.getLocation() != null) {
                 Location updatedUserLocation = getOrCreateUpdateLocation(userDTO.getLocation(), user.getLocation());
                 user.setLocation(updatedUserLocation);
             }
-
             if (userDTO.getBundleSubscriptions() != null) {
                 updateUserBundles(user, userDTO.getBundleSubscriptions());
             }
-
             return userMapper.toUserDetailsDTO(userRepository.save(user));
         } catch (Exception ex) {
             if (ex instanceof ResourceNotFoundException ||
@@ -161,49 +142,29 @@ public class UserService {
                 throw new OperationFailedException("Failed to update user with id: " + id, ex);
             }
         }
-    }//1
-
+    }
 
     private Location getOrCreateUpdateLocation(LocationDTO desiredLocationData, Location currentEntityLocationIfAny) {
         if (desiredLocationData == null) {
-            throw new ValidationException("Desired location data cannot be null.");
+            throw new ValidationException("Desired location data cannot be null when attempting to set or update a location.");
         }
 
-        Location targetLocation;
+        Location targetLocationToModifyAndSave;
 
         if (desiredLocationData.getLocationId() != null) {
-            targetLocation = locationRepository.findById(desiredLocationData.getLocationId())
+            targetLocationToModifyAndSave = locationRepository.findById(desiredLocationData.getLocationId())
                     .orElseThrow(() -> new ResourceNotFoundException("Location specified in DTO not found with ID: " + desiredLocationData.getLocationId()));
-            locationMapper.updateLocationFromDto(desiredLocationData, targetLocation);
-        } else if (currentEntityLocationIfAny != null) {
-            targetLocation = currentEntityLocationIfAny;
-            locationMapper.updateLocationFromDto(desiredLocationData, targetLocation);
+            locationMapper.updateLocationFromDto(desiredLocationData, targetLocationToModifyAndSave);
         } else {
-            targetLocation = findExistingLocationByAttributes(desiredLocationData)
-                    .map(existingLoc -> {
-                        locationMapper.updateLocationFromDto(desiredLocationData, existingLoc);
-                        return existingLoc;
-                    })
-                    .orElseGet(() -> locationMapper.toLocation(desiredLocationData));
+            if (currentEntityLocationIfAny != null) {
+                targetLocationToModifyAndSave = currentEntityLocationIfAny;
+                locationMapper.updateLocationFromDto(desiredLocationData, targetLocationToModifyAndSave);
+            } else {
+                targetLocationToModifyAndSave = locationMapper.toLocation(desiredLocationData);
+            }
         }
-        return locationRepository.save(targetLocation);
-    } //1
-
-    private Optional<Location> findExistingLocationByAttributes(LocationDTO locationDTO) {
-        if (locationDTO == null) {
-            return Optional.empty();
-        }
-        Location exampleLocation = locationMapper.toLocation(locationDTO);
-        exampleLocation.setLocationId(null);
-        exampleLocation.setCreatedAt(null);
-        exampleLocation.setUpdatedAt(null);
-
-        ExampleMatcher matcher = ExampleMatcher.matching()
-                .withIgnorePaths("locationId", "createdAt", "updatedAt", "googleMapsUrl")
-                .withStringMatcher(StringMatcher.DEFAULT)
-                .withNullHandler(ExampleMatcher.NullHandler.IGNORE);
-        return locationRepository.findOne(Example.of(exampleLocation, matcher));
-    }//1
+        return locationRepository.save(targetLocationToModifyAndSave);
+    }
 
     private void addBundlesToUser(User user, Set<CreateUpdateUserDTO.UserBundleSubscriptionDTO> bundleSubscriptions) {
         if (bundleSubscriptions == null) {
@@ -214,7 +175,7 @@ public class UserService {
         } catch (Exception ex) {
             throw new OperationFailedException("Failed to add bundles to user", ex);
         }
-    } //1
+    }
 
     @SuppressWarnings("UseSpecificCatch")
     private UserBundle addBundleToUser(User user, CreateUpdateUserDTO.UserBundleSubscriptionDTO subscription) {
@@ -248,7 +209,6 @@ public class UserService {
 
             UserBundle savedUserBundle = userBundleRepository.save(userBundle);
 
-            // Conditionally create initial payment
             if (appConfigService.isAutoCreateInitialPaymentEnabled()) {
                 createPaymentForUserBundle(savedUserBundle);
             }
@@ -261,7 +221,7 @@ public class UserService {
                 throw new OperationFailedException("Failed to add bundle to user", ex);
             }
         }
-    }//1
+    }
 
     private void updateUserBundles(User user, Set<CreateUpdateUserDTO.UserBundleSubscriptionDTO> subscriptions) {
         final Set<Long> processedUserBundleIds = new HashSet<>();
@@ -278,43 +238,37 @@ public class UserService {
                     .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with id: " + subDTO.getBundleId()));
 
             UserBundle userBundleToProcess = null;
-            Location resolvedLocationForThisSub = null;
+            Location locationForThisSubscription;
 
-            List<UserBundle> existingUserBundlesForThisBundle = userBundleRepository.findByUserAndBundleAndDeletedIsFalse(user, bundle);
+            List<UserBundle> existingUserBundlesForThisBundleType = userBundleRepository.findByUserAndBundleAndDeletedIsFalse(user, bundle);
 
             if (subDTO.getLocation().getLocationId() != null) {
-                final Location tempResolvedLoc = getOrCreateUpdateLocation(subDTO.getLocation(), null);
-                resolvedLocationForThisSub = tempResolvedLoc;
-
-                Optional<UserBundle> ubAtSpecificLocation = existingUserBundlesForThisBundle.stream()
-                        .filter(ub -> ub.getLocation().getLocationId().equals(tempResolvedLoc.getLocationId()))
-                        .findFirst();
-                if (ubAtSpecificLocation.isPresent()) {
-                    userBundleToProcess = ubAtSpecificLocation.get();
-                }
+                Location fetchedLocation = getOrCreateUpdateLocation(subDTO.getLocation(), null);
+                locationForThisSubscription = fetchedLocation;
+                final Location effectivelyFinalFetchedLoc = fetchedLocation;
+                userBundleToProcess = existingUserBundlesForThisBundleType.stream()
+                        .filter(ub -> ub.getLocation().getLocationId().equals(effectivelyFinalFetchedLoc.getLocationId()))
+                        .findFirst().orElse(null);
             } else {
-                final Location tempResolvedLoc;
-                if (existingUserBundlesForThisBundle.size() == 1) {
-                    UserBundle candidate = existingUserBundlesForThisBundle.get(0);
-                    tempResolvedLoc = getOrCreateUpdateLocation(subDTO.getLocation(), candidate.getLocation());
-                    resolvedLocationForThisSub = tempResolvedLoc;
-                    userBundleToProcess = candidate;
+                if (existingUserBundlesForThisBundleType.size() == 1) {
+                    userBundleToProcess = existingUserBundlesForThisBundleType.get(0);
+                    locationForThisSubscription = getOrCreateUpdateLocation(subDTO.getLocation(), userBundleToProcess.getLocation());
+                } else if (existingUserBundlesForThisBundleType.isEmpty()) {
+                    locationForThisSubscription = getOrCreateUpdateLocation(subDTO.getLocation(), null);
                 } else {
-                    tempResolvedLoc = getOrCreateUpdateLocation(subDTO.getLocation(), null);
-                    resolvedLocationForThisSub = tempResolvedLoc;
-                    Optional<UserBundle> ubAtAttributeLocation = existingUserBundlesForThisBundle.stream()
-                            .filter(ub -> ub.getLocation().getLocationId().equals(tempResolvedLoc.getLocationId()))
-                            .findFirst();
-                    if (ubAtAttributeLocation.isPresent()) {
-                        userBundleToProcess = ubAtAttributeLocation.get();
-                    }
+                    Location locationFromDtoAttributes = getOrCreateUpdateLocation(subDTO.getLocation(), null);
+                    locationForThisSubscription = locationFromDtoAttributes;
+                    final Location effectivelyFinalLocFromAttributes = locationFromDtoAttributes;
+                    userBundleToProcess = existingUserBundlesForThisBundleType.stream()
+                            .filter(ub -> ub.getLocation().getLocationId().equals(effectivelyFinalLocFromAttributes.getLocationId()))
+                            .findFirst().orElse(null);
                 }
             }
 
+            final Location finalResolvedLocationForIteration = locationForThisSubscription;
 
             if (userBundleToProcess != null) {
-                userBundleToProcess.setLocation(resolvedLocationForThisSub);
-
+                userBundleToProcess.setLocation(finalResolvedLocationForIteration);
                 UserBundle.BundleStatus currentStatus = userBundleToProcess.getStatus();
                 UserBundle.BundleStatus newStatusFromDTO = subDTO.getStatus();
 
@@ -322,39 +276,34 @@ public class UserService {
                     if (paymentRepository.existsUnpaidPaymentForUserBundle(userBundleToProcess.getId())) {
                         throw new InvalidOperationException(
                                 "Cannot reactivate UserBundle (ID: " + userBundleToProcess.getId() + ") for bundle '" +
-                                        bundle.getName() + "' at location '" + resolvedLocationForThisSub.getAddress() +
+                                        bundle.getName() + "' at location '" + (finalResolvedLocationForIteration != null ? finalResolvedLocationForIteration.getAddress() : "N/A") +
                                         "' because it has unpaid payments."
                         );
                     }
                 }
                 userBundleToProcess.setStatus(newStatusFromDTO);
-                userBundleToProcess.setSubscriptionDate(subDTO.getSubscriptionDate() != null ? subDTO.getSubscriptionDate() : LocalDate.now());
-
+                userBundleToProcess.setSubscriptionDate(subDTO.getSubscriptionDate() != null ? subDTO.getSubscriptionDate() : userBundleToProcess.getSubscriptionDate());
                 userBundleRepository.save(userBundleToProcess);
                 processedUserBundleIds.add(userBundleToProcess.getId());
             } else {
-                if (resolvedLocationForThisSub == null) {
-                    throw new OperationFailedException("Logical error: resolvedLocationForThisSub is null when creating new UserBundle.");
+                if (finalResolvedLocationForIteration == null) {
+                    throw new OperationFailedException("Logical error: Location for new UserBundle could not be resolved.");
                 }
-
-                Optional<UserBundle> duplicateCheck = userBundleRepository.findByUserAndBundleAndLocation(user, bundle, resolvedLocationForThisSub);
-                if(duplicateCheck.isPresent() && !processedUserBundleIds.contains(duplicateCheck.get().getId())){
+                Optional<UserBundle> duplicateCheck = userBundleRepository.findByUserAndBundleAndLocation(user, bundle, finalResolvedLocationForIteration);
+                if(duplicateCheck.isPresent() && !processedUserBundleIds.contains(duplicateCheck.get().getId())) {
                     UserBundle ub = duplicateCheck.get();
-                    getOrCreateUpdateLocation(subDTO.getLocation(), ub.getLocation());
                     ub.setStatus(subDTO.getStatus());
                     ub.setSubscriptionDate(subDTO.getSubscriptionDate() != null ? subDTO.getSubscriptionDate() : LocalDate.now());
                     userBundleRepository.save(ub);
                     processedUserBundleIds.add(ub.getId());
-
                 } else if (!duplicateCheck.isPresent()) {
                     UserBundle newUb = new UserBundle();
                     newUb.setUser(user);
                     newUb.setBundle(bundle);
-                    newUb.setLocation(resolvedLocationForThisSub);
+                    newUb.setLocation(finalResolvedLocationForIteration);
                     newUb.setSubscriptionDate(subDTO.getSubscriptionDate() != null ?
                             subDTO.getSubscriptionDate() : LocalDate.now());
                     newUb.setStatus(subDTO.getStatus());
-
                     UserBundle savedUb = userBundleRepository.save(newUb);
                     processedUserBundleIds.add(savedUb.getId());
                     if (appConfigService.isAutoCreateInitialPaymentEnabled()) {
@@ -375,17 +324,14 @@ public class UserService {
                     });
                     userBundleRepository.save(ub);
                 });
-    }//1
-
+    }
 
     @Transactional
     public void deleteUser(Long id) {
         User user = userRepository.findByIdWithBundlesAndLocation(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-
         user.setDeleted(true);
         user.setStatus(User.UserStatus.INACTIVE);
-
         user.getBundles().forEach(userBundle -> {
             userBundle.setDeleted(true);
             userBundle.setStatus(UserBundle.BundleStatus.INACTIVE);
@@ -393,9 +339,8 @@ public class UserService {
                 payment.setDeleted(true);
             });
         });
-
         userRepository.save(user);
-    }//1
+    }
 
     private void createPaymentForUserBundle(UserBundle userBundle) {
         CreatePaymentDTO paymentDTO = new CreatePaymentDTO();
@@ -403,7 +348,6 @@ public class UserService {
         paymentDTO.setDueDate(LocalDateTime.now().plusMonths(1));
         paymentDTO.setPaymentMethod("Auto-Generated on Subscription");
         paymentDTO.setUserBundleId(userBundle.getId());
-
         paymentService.createPayment(paymentDTO);
-    }//1
+    }
 }
