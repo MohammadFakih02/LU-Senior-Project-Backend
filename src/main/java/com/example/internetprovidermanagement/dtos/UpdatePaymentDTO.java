@@ -17,7 +17,7 @@ public class UpdatePaymentDTO {
     private BigDecimal amount;
 
     @Size(max = 50, message = "Payment method must be less than 50 characters")
-    private String paymentMethod;  // Removed @NotBlank
+    private String paymentMethod;
 
-    private Payment.PaymentStatus status;  // Removed @NotNull
+    private Payment.PaymentStatus status;
 }

@@ -15,8 +15,6 @@ import java.util.Map;
 public class AppConfigController {
     private final AppConfigService configService;
 
-    // ... other endpoints remain the same ...
-
     @GetMapping("/retention-days")
     public ResponseEntity<Integer> getRetentionDays() {
         return ResponseEntity.ok(configService.getRetentionDays());
@@ -80,8 +78,6 @@ public class AppConfigController {
 
     @PutMapping("/security/password")
     public ResponseEntity<Void> changeAdminPassword(@RequestBody ChangePasswordDTO changePasswordDTO) {
-        // Basic DTO validation can be done here, or rely on service layer,
-        // or use @Valid if you add JSR 303 annotations to ChangePasswordDTO
         if (changePasswordDTO == null ||
                 changePasswordDTO.getOldPassword() == null ||
                 changePasswordDTO.getNewPassword() == null) {

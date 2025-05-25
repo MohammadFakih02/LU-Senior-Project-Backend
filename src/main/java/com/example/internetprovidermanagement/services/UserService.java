@@ -44,12 +44,7 @@ public class UserService {
     private final UserMapper userMapper;
     private final LocationMapper locationMapper;
     private final PaymentService paymentService;
-    private final AppConfigService appConfigService; // Inject AppConfigService
-
-    // ... other methods from previous UserService version ...
-    // (getAllUsers, getUserById, createUser, updateUser, getOrCreateUpdateLocation, findExistingLocationByAttributes)
-    // I'm omitting them for brevity here, but they remain unchanged from the last version we had.
-    // Make sure to merge this into your existing UserService.
+    private final AppConfigService appConfigService;
 
     public List<UserResponseDTO> getAllUsers() {
         List<User> users = userRepository.findAllActiveUsers();

@@ -29,10 +29,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByPhone(String phone); //1
 
     @Query("SELECT DISTINCT u FROM User u " +
-            "LEFT JOIN FETCH u.bundles ub " + // Fetches all bundles (including deleted)
+            "LEFT JOIN FETCH u.bundles ub " +
             "LEFT JOIN FETCH u.location l " +
             "WHERE u.id = :id " +
-            "AND u.deleted = false") // Only check user deletion status
+            "AND u.deleted = false")
     Optional<User> findByIdWithBundlesAndLocation(@Param("id") Long id); //1
 
     @Query("SELECT u FROM User u JOIN FETCH u.location WHERE u.id = :id AND u.deleted = false")
@@ -57,7 +57,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByIdWithBundlesAndPayments(@Param("id") Long id);//1
 
     @Query("SELECT DISTINCT u FROM User u " +
-            "JOIN FETCH u.bundles ub " + // Only fetch users with active bundles
+            "JOIN FETCH u.bundles ub " +
             "WHERE u.deleted = false " +
             "AND ub.deleted = false")
     List<User> findAllActiveUsersWithActiveBundles();

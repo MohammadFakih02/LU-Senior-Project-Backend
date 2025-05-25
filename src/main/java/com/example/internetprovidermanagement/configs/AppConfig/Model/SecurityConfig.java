@@ -26,24 +26,24 @@ public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
 
     @Bean
-    public static PasswordEncoder passwordEncoder() { // Made static if not already, or ensure it's created before dependent beans
+    public static PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable) // Disable CSRF for simpler API auth initially
+                .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/auth/login", "/api/auth/status").permitAll() // Allow login and status check
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow all OPTIONS requests for CORS preflight
-                        .requestMatchers("/api/**").authenticated() // Secure all other /api/** endpoints
-                        .anyRequest().permitAll() // Allow access to non-API paths (e.g. static content, actuator if any) - adjust as needed
+                        .requestMatchers("/api/auth/login", "/api/auth/status").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/**").authenticated()
+                        .anyRequest().permitAll()
                 )
                 .formLogin(formLogin -> formLogin
                         .loginProcessingUrl("/api/auth/login")
-                        .usernameParameter("username") // Ensure frontend sends 'username'
-                        .passwordParameter("password") // Ensure frontend sends 'password'
+                        .usernameParameter("username")
+                        .passwordParameter("password")
                         .successHandler((request, response, authentication) -> {
                             response.setStatus(HttpServletResponse.SC_OK);
                             response.getWriter().flush();
@@ -61,11 +61,10 @@ public class SecurityConfig {
                             response.getWriter().write("Logout successful");
                             response.getWriter().flush();
                         })
-                        .deleteCookies("JSESSIONID") // Important for session invalidation
+                        .deleteCookies("JSESSIONID")
                         .invalidateHttpSession(true)
                 )
                 .exceptionHandling(exceptions -> exceptions
-                        // This handles cases where an unauthenticated user tries to access a secured resource
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 );
 

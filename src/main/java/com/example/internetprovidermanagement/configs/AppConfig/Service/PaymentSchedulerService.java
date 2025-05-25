@@ -25,10 +25,8 @@ public class PaymentSchedulerService {
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void dailyPaymentMaintenance() {
-        // 1. Process overdue payments
         handleOverduePayments();
 
-        // 2. Generate new payments
         if (!configService.isRecurringPaymentsEnabled()) {
             return;
         }
@@ -43,10 +41,6 @@ public class PaymentSchedulerService {
         userBundleRepository.bulkDeactivateBundlesForPayments(overduePaymentIds);
     }
 
-        // 2. Then generate new payments
-
-
-     // Runs daily at midnight
 
     public void generateRecurringPayments() {
         List<User> activeUsers = userRepository.findAllActiveUsersWithActiveBundles();
@@ -57,12 +51,10 @@ public class PaymentSchedulerService {
                     LocalDate subscriptionDate = bundle.getSubscriptionDate();
                     long daysSinceSubscription = ChronoUnit.DAYS.between(subscriptionDate, today);
 
-                    // Check if it's a 30-day interval and not the subscription day itself
                     if (daysSinceSubscription > 0 && daysSinceSubscription % 30 == 0) {
                         CreatePaymentDTO paymentDTO = new CreatePaymentDTO();
                         paymentDTO.setAmount(bundle.getBundle().getPrice());
 
-                        // Calculate due date as next interval (e.g., day 30 → due on day 60)
                         long periodsPassed = daysSinceSubscription / 30;
                         LocalDate dueDate = subscriptionDate.plusDays(30 * (periodsPassed + 1));
 

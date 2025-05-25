@@ -13,6 +13,6 @@ public interface UserBundleMapper {
     @Mapping(target = "bundleLocation", source = "location")
     @Mapping(target = "status", source = "status")
     @Mapping(target = "subscriptionDate", source = "subscriptionDate")
-    @Mapping(target = "deleted", source = "deleted") // Add this
+    @Mapping(target = "deleted", source = "deleted")
     UserBundleDetailsDTO toUserBundleDetailsDTO(UserBundle userBundle); //1
 }

@@ -25,14 +25,13 @@ public class CustomUserDetailsService implements UserDetailsService {
             configuredUsername = appConfigService.getAdminUsername();
             configuredPasswordHash = appConfigService.getAdminPasswordHash();
         } catch (Exception e) {
-            // This might happen if config keys are not yet in the DB during early startup
             throw new UsernameNotFoundException("Admin user configuration not found or accessible.", e);
         }
 
         if (username.equals(configuredUsername)) {
             return new User(configuredUsername,
                             configuredPasswordHash,
-                            Collections.emptyList()); // No specific roles/authorities for this simple case
+                            Collections.emptyList());
         } else {
             throw new UsernameNotFoundException("User not found: " + username);
         }

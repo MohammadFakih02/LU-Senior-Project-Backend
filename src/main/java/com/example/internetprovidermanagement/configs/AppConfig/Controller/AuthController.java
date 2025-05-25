@@ -21,7 +21,6 @@ public class AuthController {
         if (authentication != null && authentication.isAuthenticated() && userDetails != null) {
             response.put("authenticated", true);
             response.put("username", userDetails.getUsername());
-            // Add other details if needed, like roles (though we have none here)
         } else {
             response.put("authenticated", false);
         }

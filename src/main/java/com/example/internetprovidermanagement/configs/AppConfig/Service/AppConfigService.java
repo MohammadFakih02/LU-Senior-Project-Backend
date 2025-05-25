@@ -138,10 +138,6 @@ public class AppConfigService {
         if (changePasswordDTO.getOldPassword().equals(changePasswordDTO.getNewPassword())) {
             throw new BadRequestException("New password cannot be the same as the old password.");
         }
-
-        // Optionally, add complexity rules for the new password here
-        // e.g., if (changePasswordDTO.getNewPassword().length() < 8) { throw new BadRequestException("New password too short."); }
-
         saveConfig(SECURITY_ADMIN_PASSWORD_KEY, passwordEncoder.encode(changePasswordDTO.getNewPassword()));
     }
 

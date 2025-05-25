@@ -6,7 +6,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.4.5</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
     <groupId>com.example</groupId>
     <artifactId>internetprovidermanagement</artifactId>
@@ -16,14 +16,12 @@
 
     <properties>
         <java.version>21</java.version>
-        <!-- MapStruct and Lombok versions -->
         <org.mapstruct.version>1.6.3</org.mapstruct.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
-        <lombok.version>1.18.30</lombok.version> <!-- Add this line -->
+        <lombok.version>1.18.30</lombok.version>
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -36,8 +34,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-
-        <!-- Database -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -51,30 +47,22 @@
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
-
-        <!-- Development -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
-
-        <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
-
-        <!-- MapStruct -->
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
@@ -85,7 +73,6 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <plugin>
@@ -95,14 +82,13 @@
             <plugin>
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-maven-plugin</artifactId>
-                <version>10.20.1</version> <!-- Use your Flyway core version -->
+                <version>10.20.1</version>
                 <configuration>
                     <url>${spring.datasource.url}</url>
                     <user>${spring.datasource.username}</user>
                     <password>${spring.datasource.password}</password>
-                    <!-- Add any other necessary SSL parameters if not in the URL -->
                     <schemas>
-                        <schema>defaultdb</schema> <!-- Or your target schema -->
+                        <schema>defaultdb</schema>
                     </schemas>
                 </configuration>
             </plugin>
@@ -113,7 +99,6 @@
     <configuration>
         <release>${java.version}</release>
         <annotationProcessorPaths>
-            <!-- Lombok should come first -->
             <path>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
@@ -124,7 +109,6 @@
                 <artifactId>lombok-mapstruct-binding</artifactId>
                 <version>${lombok-mapstruct-binding.version}</version>
             </path>
-            <!-- Then MapStruct -->
             <path>
                 <groupId>org.mapstruct</groupId>
                 <artifactId>mapstruct-processor</artifactId>

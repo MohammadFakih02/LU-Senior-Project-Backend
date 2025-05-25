@@ -28,7 +28,7 @@ public interface UserMapper {
         if (bundles == null) return Collections.emptySet();
 
         return bundles.stream()
-                .filter(ub -> !ub.isDeleted()) // Final safety check
+                .filter(ub -> !ub.isDeleted())
                 .map(ub -> ub.getBundle().getName())
                 .collect(Collectors.toSet());
     }
@@ -41,24 +41,19 @@ public interface UserMapper {
     @Mapping(target = "location", source = "location")
     UserDetailsDTO toUserDetailsDTO(User user); //1
 
-    // Add to creation/update methods:
-     // Protect deletion status
-
-// Updated toUser method:
     @Mapping(target = "bundles", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "deleted", ignore = true) // Add this
+    @Mapping(target = "deleted", ignore = true)
     User toUser(CreateUpdateUserDTO createUpdateUserDTO); //1
 
-    // Updated update method:
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "location", ignore = true)
     @Mapping(target = "bundles", ignore = true)
-    @Mapping(target = "deleted", ignore = true) // Add this
+    @Mapping(target = "deleted", ignore = true)
     void updateUserFromDto(CreateUpdateUserDTO dto, @MappingTarget User user);//1
 
     @Named("mapBundles")
@@ -66,7 +61,7 @@ public interface UserMapper {
         if (bundles == null) return null;
 
         return bundles.stream()
-                .filter(ub -> !ub.isDeleted()) // Final filter
+                .filter(ub -> !ub.isDeleted())
                 .map(this::toUserBundleDetailsDTO)
                 .collect(Collectors.toSet());
     }
