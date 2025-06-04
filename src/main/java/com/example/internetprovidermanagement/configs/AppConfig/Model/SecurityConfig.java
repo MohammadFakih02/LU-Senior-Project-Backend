@@ -1,5 +1,7 @@
 package com.example.internetprovidermanagement.configs.AppConfig.Model;
 
+
+import com.example.internetprovidermanagement.configs.AppConfig.LoginTimeoutClasses.LoginAttemptBlockingFilter;
 import com.example.internetprovidermanagement.configs.AppConfig.Service.CustomUserDetailsService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -24,6 +27,7 @@ import org.springframework.http.HttpStatus;
 public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
+    private final LoginAttemptBlockingFilter loginAttemptBlockingFilter;
 
     @Bean
     public static PasswordEncoder passwordEncoder() {
@@ -35,6 +39,7 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
+                .addFilterBefore(loginAttemptBlockingFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/auth/login", "/api/auth/status").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -50,7 +55,12 @@ public class SecurityConfig {
                         })
                         .failureHandler((request, response, exception) -> {
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.getWriter().write("Authentication failed: " + exception.getMessage());
+                            response.setContentType("application/json");
+                            String message = "Authentication failed: Invalid credentials.";
+                            if (exception.getMessage() != null && !exception.getMessage().contains("Bad credentials")){
+                                message = "Authentication failed: " + exception.getMessage();
+                            }
+                            response.getWriter().write("{\"error\": \"Unauthorized\", \"message\": \"" + message + "\"}");
                             response.getWriter().flush();
                         })
                 )
