@@ -1,99 +1,128 @@
 package com.example.internetprovidermanagement.services;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.example.internetprovidermanagement.exceptions.InvalidOperationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.internetprovidermanagement.dtos.PaymentDTO;
+import com.example.internetprovidermanagement.dtos.CreatePaymentDTO;
+import com.example.internetprovidermanagement.dtos.PaymentResponseDTO;
+import com.example.internetprovidermanagement.dtos.UpdatePaymentDTO;
+import com.example.internetprovidermanagement.exceptions.PaymentProcessingException;
 import com.example.internetprovidermanagement.exceptions.ResourceNotFoundException;
 import com.example.internetprovidermanagement.mappers.PaymentMapper;
 import com.example.internetprovidermanagement.models.Payment;
-import com.example.internetprovidermanagement.models.User;
+import com.example.internetprovidermanagement.models.UserBundle;
 import com.example.internetprovidermanagement.repositories.PaymentRepository;
-import com.example.internetprovidermanagement.repositories.UserRepository;
+import com.example.internetprovidermanagement.repositories.UserBundleRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
-@Transactional
+@RequiredArgsConstructor
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
-    private final UserRepository userRepository;
+    private final UserBundleRepository userBundleRepository;
     private final PaymentMapper paymentMapper;
 
-    public PaymentService(PaymentRepository paymentRepository,
-                         UserRepository userRepository,
-                         PaymentMapper paymentMapper) {
-        this.paymentRepository = paymentRepository;
-        this.userRepository = userRepository;
-        this.paymentMapper = paymentMapper;
+    @Transactional(readOnly = true)
+    public List<PaymentResponseDTO> getAllPayments() {
+        return paymentRepository.findAllPayments().stream()
+                .map(paymentMapper::toPaymentResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    public PaymentDTO createPayment(PaymentDTO paymentDTO) {
-        // Get the user entity from repository
-        User user = userRepository.findById(paymentDTO.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + paymentDTO.getUserId()));
+    @Transactional
+    public PaymentResponseDTO createPayment(CreatePaymentDTO paymentDTO) {
+        UserBundle userBundle = userBundleRepository.findById(paymentDTO.getUserBundleId())
+                .orElseThrow(() -> new ResourceNotFoundException("User bundle not found"));
+        if (userBundle.isDeleted()) {
+            throw new InvalidOperationException("Cannot create payment for deleted user bundle");
+        }
 
         Payment payment = paymentMapper.toPayment(paymentDTO);
-        payment.setUser(user); // Set the complete user entity
+        payment.setUserBundle(userBundle);
 
-        if (payment.getPaymentDate() == null) {
-            payment.setPaymentDate(LocalDate.now());
+        Payment.PaymentStatus currentStatus = payment.getStatus();
+        String paymentMethodFromDTO = payment.getPaymentMethod();
+
+        final String AUTO_GENERATED_METHOD = "Auto-Generated on Subscription";
+
+        if (currentStatus == Payment.PaymentStatus.PENDING || currentStatus == Payment.PaymentStatus.UNPAID) {
+            payment.setPaymentMethod(AUTO_GENERATED_METHOD);
+        } else if (currentStatus == Payment.PaymentStatus.PAID) {
+            if (paymentMethodFromDTO == null || paymentMethodFromDTO.trim().isEmpty()) {
+                payment.setPaymentMethod(AUTO_GENERATED_METHOD);
+            }
         }
 
-        Payment savedPayment = paymentRepository.save(payment);
-        return paymentMapper.toPaymentDTO(savedPayment);
+        if (payment.getPaymentDate() == null && currentStatus == Payment.PaymentStatus.PAID) {
+            payment.setPaymentDate(LocalDateTime.now());
+        }
+
+        return paymentMapper.toPaymentResponseDTO(paymentRepository.save(payment));
     }
 
-    public List<PaymentDTO> getAllPayments() {
-        return paymentRepository.findAll().stream()
-                .map(paymentMapper::toPaymentDTO)
-                .collect(Collectors.toList());
-    }
-
-    public PaymentDTO getPaymentById(Long id) {
+    @Transactional
+    public PaymentResponseDTO updatePayment(Long id, UpdatePaymentDTO paymentDTO) {
         Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found with ID: " + id));
-        return paymentMapper.toPaymentDTO(payment);
-    }
 
-    public List<PaymentDTO> getPaymentsByUserId(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new ResourceNotFoundException("User not found with ID: " + userId);
+        if (payment.isDeleted()) {
+            throw new InvalidOperationException("Cannot update a deleted payment with ID: " + id);
         }
-        
-        return paymentRepository.findByUserId(userId).stream()
-                .map(paymentMapper::toPaymentDTO)
-                .collect(Collectors.toList());
+
+        if (paymentDTO.getAmount() != null) {
+            payment.setAmount(paymentDTO.getAmount());
+        }
+        if (paymentDTO.getPaymentMethod() != null) {
+            payment.setPaymentMethod(paymentDTO.getPaymentMethod());
+        }
+        if (paymentDTO.getStatus() != null) {
+            payment.setStatus(paymentDTO.getStatus());
+            if (paymentDTO.getStatus() == Payment.PaymentStatus.PAID && payment.getPaymentDate() == null) {
+                payment.setPaymentDate(LocalDateTime.now());
+            }
+        }
+
+        return paymentMapper.toPaymentResponseDTO(paymentRepository.save(payment));
     }
 
-    public PaymentDTO updatePayment(Long id, PaymentDTO paymentDTO) {
-        Payment existingPayment = paymentRepository.findById(id)
+    @Transactional
+    public void processPayment(Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found with ID: " + paymentId));
+
+        if (payment.isDeleted()) {
+            throw new InvalidOperationException("Cannot process a deleted payment with ID: " + paymentId);
+        }
+        if (payment.getStatus() != Payment.PaymentStatus.PENDING) {
+            throw new PaymentProcessingException("Only pending payments can be processed. Payment ID: " + paymentId + " has status: " + payment.getStatus());
+        }
+
+        try {
+            payment.setStatus(Payment.PaymentStatus.PAID);
+            payment.setPaymentDate(LocalDateTime.now());
+            paymentRepository.save(payment);
+        } catch (Exception e) {
+            throw new PaymentProcessingException("Payment processing failed for ID " + paymentId + ": " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public void softDeletePayment(Long id) {
+        Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found with ID: " + id));
 
-        // Only update user if it's different
-        if (!existingPayment.getUser().getId().equals(paymentDTO.getUserId())) {
-            User user = userRepository.findById(paymentDTO.getUserId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + paymentDTO.getUserId()));
-            existingPayment.setUser(user);
+        if (payment.isDeleted()) {
+            return;
         }
 
-        existingPayment.setAmount(paymentDTO.getAmount());
-        existingPayment.setPaymentDate(paymentDTO.getPaymentDate());
-        existingPayment.setStatus(paymentDTO.getStatus());
-        existingPayment.setMethod(paymentDTO.getMethod());
-        existingPayment.setDueDate(paymentDTO.getDueDate());
-
-        Payment updatedPayment = paymentRepository.save(existingPayment);
-        return paymentMapper.toPaymentDTO(updatedPayment);
-    }
-
-    public void deletePayment(Long id) {
-        if (!paymentRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Payment not found with ID: " + id);
-        }
-        paymentRepository.deleteById(id);
+        payment.setDeleted(true);
+        paymentRepository.save(payment);
     }
 }

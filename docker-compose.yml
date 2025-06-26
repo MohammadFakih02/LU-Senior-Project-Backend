@@ -1,0 +1,30 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: . # Build the image from the Dockerfile in the current directory
+      # dockerfile: Dockerfile # Optional: specify if Dockerfile has a different name
+    image: internetprovidermanagement-app:latest # Optional: names the built image
+    container_name: internet-provider-manager
+    ports:
+      - "8080:8080" # Map host port 8080 to container port 8080 (Spring Boot default)
+    env_file:
+      - .env # Load environment variables from the .env file in the same directory
+    # The .env file should define:
+    # DB_HOST_ENV=...
+    # DB_PORT_ENV=...
+    # DB_NAME_ENV=...
+    # DB_USERNAME_ENV=...
+    # DB_PASSWORD_ENV=...
+    # DB_KEYSTORE_PASSWORD_ENV=...
+
+    # You can also set or override environment variables here.
+    # Variables set here take precedence over those in the .env file if they have the same name.
+    # Shell environment variables take precedence over these.
+    # environment:
+    #   - SPRING_PROFILES_ACTIVE=docker # Example: activate a 'docker' Spring profile
+    #   - ANOTHER_VARIABLE=some_value
+
+    restart: unless-stopped # Optional: Restart policy

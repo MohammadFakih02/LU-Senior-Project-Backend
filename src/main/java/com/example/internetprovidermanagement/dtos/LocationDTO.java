@@ -1,38 +1,35 @@
 package com.example.internetprovidermanagement.dtos;
-import java.time.LocalDateTime;
+
+import org.hibernate.validator.constraints.URL;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter
-@Setter
+@Data
 public class LocationDTO {
-    private Long id;
-
-    @NotBlank(message = "Address is required")
-    @Size(max = 255, message = "Address must be less than 255 characters")
+    private Long locationId;
+    
+    @NotBlank
+    @Size(max = 255)
     private String address;
-
-    @NotBlank(message = "City is required")
-    @Size(max = 45, message = "City must be less than 45 characters")
+    
+    @NotBlank
+    @Size(max = 45)
     private String city;
-
-    @NotBlank(message = "Street is required")
-    @Size(max = 45, message = "Street must be less than 45 characters")
+    
+    @NotBlank
+    @Size(max = 45)
     private String street;
-
-    @NotBlank(message = "Building is required")
-    @Size(max = 45, message = "Building must be less than 45 characters")
+    
+    @NotBlank
+    @Size(max = 45)
     private String building;
-
-    @Size(max = 45, message = "Floor must be less than 45 characters")
+    
+    @Size(max = 45)
     private String floor;
-
-    @Size(max = 255, message = "Google Maps URL must be less than 255 characters")
+    
+    @URL
+    @Size(max = 255)
     private String googleMapsUrl;
-
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

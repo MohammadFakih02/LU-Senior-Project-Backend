@@ -1,28 +1,19 @@
 package com.example.internetprovidermanagement.dtos;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.Set;
 
-import com.example.internetprovidermanagement.models.User.UserStatus;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter
-@Setter
+@Data
 public class UserDetailsDTO {
-    private Long id;
+    private Long userId;
     private String firstName;
     private String lastName;
     private String email;
     private String landLine;
     private String phone;
-    private BigDecimal consumption;
-    private BigDecimal bill;
-    private LocalDate subscriptionDate;
-    private UserStatus status;
-    private BundleDTO bundle;
+    private String status;
     private LocationDTO location;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private Set<UserBundleDetailsDTO> bundles;
+    private boolean deleted;
 }

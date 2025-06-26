@@ -1,71 +1,90 @@
 package com.example.internetprovidermanagement.services;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.example.internetprovidermanagement.dtos.BundleDTO;
+import com.example.internetprovidermanagement.dtos.BundleResponseDTO;
+import com.example.internetprovidermanagement.exceptions.ConflictException;
 import com.example.internetprovidermanagement.exceptions.ResourceNotFoundException;
 import com.example.internetprovidermanagement.mappers.BundleMapper;
 import com.example.internetprovidermanagement.models.Bundle;
+import com.example.internetprovidermanagement.models.UserBundle;
 import com.example.internetprovidermanagement.repositories.BundleRepository;
+import com.example.internetprovidermanagement.repositories.PaymentRepository;
+import com.example.internetprovidermanagement.repositories.UserBundleRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
-@Transactional
+@RequiredArgsConstructor
 public class BundleService {
 
     private final BundleRepository bundleRepository;
     private final BundleMapper bundleMapper;
+    private final UserBundleRepository userBundleRepository;
+    private final PaymentRepository paymentRepository;
 
-    public BundleService(BundleRepository bundleRepository, BundleMapper bundleMapper) {
-        this.bundleRepository = bundleRepository;
-        this.bundleMapper = bundleMapper;
-    }
+    @Transactional
+    public BundleResponseDTO createBundle(BundleDTO bundleDTO) {
+        validateNameUniqueness(bundleDTO.getName());
 
-    public BundleDTO createBundle(BundleDTO bundleDTO) {
         Bundle bundle = bundleMapper.toBundle(bundleDTO);
-        Bundle savedBundle = bundleRepository.save(bundle);
-        return bundleMapper.toBundleDTO(savedBundle);
-    }
+        return bundleMapper.toBundleResponseDTO(bundleRepository.save(bundle));
+    } //1
 
-    public List<BundleDTO> getAllBundles() {
-        return bundleRepository.findAll().stream()
-                .map(bundleMapper::toBundleDTO)
+    @Transactional(readOnly = true)
+    public List<BundleResponseDTO> getAllBundles() {
+        return bundleRepository.findAllActive().stream()
+                .map(bundleMapper::toBundleResponseDTO)
                 .collect(Collectors.toList());
-    }
+    }//1
 
-    public List<BundleDTO> getBundlesByType(Bundle.BundleType type) {
-        return bundleRepository.findByType(type).stream()
-                .map(bundleMapper::toBundleDTO)
-                .collect(Collectors.toList());
-    }
-
-    public BundleDTO getBundleById(Long id) {
+    @Transactional(readOnly = true)
+    public BundleResponseDTO getBundleById(Long id) {
         Bundle bundle = bundleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with ID: " + id));
-        return bundleMapper.toBundleDTO(bundle);
-    }
+                .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with id: " + id));
 
-    public BundleDTO updateBundle(Long id, BundleDTO bundleDTO) {
-        Bundle existingBundle = bundleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with ID: " + id));
+        if (bundle.isDeleted()) {
+            throw new ResourceNotFoundException("Bundle not found with id: " + id);
+        }
 
-        existingBundle.setName(bundleDTO.getName());
-        existingBundle.setDescription(bundleDTO.getDescription());
-        existingBundle.setType(bundleDTO.getType());
-        existingBundle.setPrice(bundleDTO.getPrice());
-        existingBundle.setDataCap(bundleDTO.getDataCap());
-        existingBundle.setSpeed(bundleDTO.getSpeed());
+        return bundleMapper.toBundleResponseDTO(bundle);
+    }//1
 
-        Bundle updatedBundle = bundleRepository.save(existingBundle);
-        return bundleMapper.toBundleDTO(updatedBundle);
-    }
+    @Transactional
+    public BundleResponseDTO updateBundle(Long id, BundleDTO bundleDTO) {
+        Bundle bundle = bundleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Bundle not found"));
 
+        if (!bundle.getName().equals(bundleDTO.getName())) {
+            validateNameUniqueness(bundleDTO.getName());
+        }
+
+        bundleMapper.updateBundleFromDto(bundleDTO, bundle);
+        return bundleMapper.toBundleResponseDTO(bundleRepository.save(bundle));
+    }//1
+
+    private void validateNameUniqueness(String name) {
+        if (bundleRepository.existsActiveByName(name)) {
+            throw new ConflictException("Bundle name already exists");
+        }
+    } //1
+
+    @Transactional
     public void deleteBundle(Long id) {
+        // 1. Soft-delete the bundle
         Bundle bundle = bundleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Bundle not found with ID: " + id));
-        bundleRepository.delete(bundle);
-    }
+                .orElseThrow(() -> new ResourceNotFoundException("Bundle not found"));
+        bundle.setDeleted(true);
+        bundleRepository.save(bundle);
+
+        // 2. Soft-delete all related user bundles
+        userBundleRepository.softDeleteByBundleId(id);
+
+        // 3. Soft-delete all related payments
+        paymentRepository.softDeleteByBundleId(id);
+    } //1
+
 }

@@ -1,0 +1,1 @@
+ALTER TABLE UserBundles DROP COLUMN consumption;

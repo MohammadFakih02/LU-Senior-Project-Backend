@@ -1,0 +1,64 @@
+package com.example.internetprovidermanagement.repositories;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import com.example.internetprovidermanagement.models.Bundle;
+import com.example.internetprovidermanagement.models.Location;
+import com.example.internetprovidermanagement.models.User;
+import com.example.internetprovidermanagement.models.UserBundle;
+
+@Repository
+public interface UserBundleRepository extends JpaRepository<UserBundle, Long> {
+
+    @Query("SELECT ub FROM UserBundle ub WHERE ub.user = :user AND ub.deleted = false")
+    List<UserBundle> findByUser(@Param("user") User user);
+
+    @Query("SELECT ub FROM UserBundle ub WHERE ub.bundle.bundleId = :bundleId AND ub.deleted = false")
+    List<UserBundle> findByBundleBundleId(@Param("bundleId") Long bundleId);
+
+    @Query("SELECT ub FROM UserBundle ub JOIN FETCH ub.bundle WHERE ub.user.id = :userId AND ub.deleted = false")
+    List<UserBundle> findByUserIdWithBundle(@Param("userId") Long userId); //1
+
+    @Query("SELECT CASE WHEN COUNT(ub) > 0 THEN true ELSE false END " +
+            "FROM UserBundle ub WHERE ub.user = :user AND ub.bundle = :bundle " +
+            "AND ub.location = :location AND ub.deleted = false")
+    boolean existsByUserAndBundleAndLocation(@Param("user") User user,
+                                             @Param("bundle") Bundle bundle,
+                                             @Param("location") Location location); //1
+
+    @Query("SELECT ub FROM UserBundle ub WHERE " +
+            "ub.user = :user AND " +
+            "ub.bundle = :bundle AND " +
+            "ub.location = :location AND " +
+            "ub.deleted = false")
+    Optional<UserBundle> findByUserAndBundleAndLocation(
+            @Param("user") User user,
+            @Param("bundle") Bundle bundle,
+            @Param("location") Location location
+    ); //1
+
+    @Query("SELECT ub FROM UserBundle ub LEFT JOIN FETCH ub.payments WHERE ub.id = :id")
+    Optional<UserBundle> findByIdWithPayments(@Param("id") Long id);
+
+    @Query("SELECT ub FROM UserBundle ub LEFT JOIN FETCH ub.payments WHERE ub.bundle.bundleId = :bundleId")
+    List<UserBundle> findByBundleIdWithPayments(@Param("bundleId") Long bundleId);
+
+    @Modifying
+    @Query("UPDATE UserBundle ub SET ub.deleted = true WHERE ub.bundle.bundleId = :bundleId")
+    void softDeleteByBundleId(@Param("bundleId") Long bundleId); //1
+
+    @Modifying
+    @Query("UPDATE UserBundle ub SET ub.status = 'INACTIVE' " +
+            "WHERE ub.id IN (SELECT p.userBundle.id FROM Payment p WHERE p.id IN :paymentIds)")
+    void bulkDeactivateBundlesForPayments(@Param("paymentIds") List<Long> paymentIds);
+
+    @Query("SELECT ub FROM UserBundle ub WHERE ub.user = :user AND ub.bundle = :bundle AND ub.deleted = false")
+    List<UserBundle> findByUserAndBundleAndDeletedIsFalse(@Param("user") User user, @Param("bundle") Bundle bundle);//1
+}

@@ -1,0 +1,1 @@
+ALTER TABLE `UserBundles` DROP INDEX `unique_user_bundle`;

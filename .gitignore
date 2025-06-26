@@ -1,3 +1,4 @@
+# Existing content from your .gitignore...
 HELP.md
 target/
 !.mvn/wrapper/maven-wrapper.jar
@@ -31,3 +32,15 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# --- ADDITIONS ---
+
+# Ignore .env file containing environment-specific variables and secrets
+.env
+
+# Optional: If your aiven_truststore.jks contains sensitive private key material
+# and is NOT meant to be committed (meaning you'd have a different way to get it into the Docker image).
+# If it's just a public CA truststore and it's fine to commit, you don't need to add this.
+# src/main/resources/certs/aiven_truststore.jks
+# OR to ignore the whole directory:
+# src/main/resources/certs/
